@@ -106,6 +106,7 @@
   .goal-note.warn{color:var(--bad);}
   .goal-empty{color:var(--muted-2);font-size:12.5px;}
   .header-actions{display:flex;gap:8px;}
+  .pp-toggle-row{display:flex;justify-content:flex-end;margin-bottom:12px;}
 
   /* ---------- Stat row ---------- */
   .stats{
@@ -243,14 +244,20 @@
       <button class="btn secondary" id="btnImportExcel" title="Lee un Excel con el mismo formato de la plantilla y sustituye los datos de base">📥 Importar Excel</button>
       <button class="btn secondary" id="btnExportExcel" title="Descarga un Excel con el mismo formato, incluyendo las rondas que hayas añadido desde esta app (copia de seguridad)">💾 Exportar Excel</button>
       <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
-      <button class="btn secondary toggle-pp" id="btnTogglePP" title="Excluye del cálculo teórico las vueltas jugadas en pistas Pitch & Putt (las oficiales de P&P nunca se excluyen)">⛳ Excluir Pitch&nbsp;&amp;&nbsp;Putt</button>
       <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar añadidas</button>
+      <button class="btn secondary" id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar con GitHub</button>
+      <button class="btn secondary" id="btnGithubConfig" title="Configurar el token de acceso de GitHub" style="padding:10px 12px;">⚙️</button>
       <button class="btn" id="btnAdd">+ Nueva ronda</button>
     </div>
   </header>
 
   <div id="errorBar" style="display:none;background:rgba(193,96,74,.15);border:1px solid var(--bad);color:var(--bad);padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;"></div>
   <div id="importBanner" class="import-banner"></div>
+  <div id="githubSyncStatus" class="import-banner" style="display:block;background:rgba(140,160,151,.10);border-color:var(--line);color:var(--muted);"></div>
+
+  <div class="pp-toggle-row">
+    <button class="btn secondary toggle-pp" id="btnTogglePP" title="Excluye del cálculo teórico las vueltas jugadas en pistas Pitch & Putt (las oficiales de P&P nunca se excluyen)">⛳ Excluir Pitch&nbsp;&amp;&nbsp;Putt</button>
+  </div>
 
   <div class="stats">
     <div class="stat-card">
@@ -425,6 +432,31 @@
     <div class="modal-actions">
       <button class="btn secondary" id="cancelBtn">Cancelar</button>
       <button class="btn" id="saveBtn">Guardar ronda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: configuración de GitHub -->
+<div class="overlay" id="overlayGithub">
+  <div class="modal">
+    <button class="close-x" id="closeGithubModal">✕</button>
+    <h3>Sincronización con GitHub</h3>
+    <div class="modal-sub">El token se guarda solo en este navegador, nunca se publica en el repositorio.</div>
+
+    <div class="field">
+      <label>Repositorio</label>
+      <input type="text" id="ghRepo" placeholder="usuario/repo">
+    </div>
+    <div class="field">
+      <label>Personal Access Token (fine-grained, permiso "Contents: Read and write" sobre ese repo)</label>
+      <input type="password" id="ghToken" placeholder="github_pat_...">
+      <div class="hint">Se genera en GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="ghForget">Olvidar token guardado</button>
+      <button class="btn secondary" id="ghCancel">Cancelar</button>
+      <button class="btn" id="ghSave">Guardar</button>
     </div>
   </div>
 </div>
@@ -625,6 +657,7 @@ function render(){
   if(errBar) errBar.style.display = 'none';
 
   syncImportBanner();
+  refreshGithubStatusLine();
   populateCampoSelect();
 
   const events = buildEvents();
@@ -1260,6 +1293,149 @@ document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
   }
 });
 
+/* ================= Sincronización con GitHub (rondas añadidas -> repo) ================= */
+const GH_CONFIG_KEY = 'hcp_github_sync_v1';
+const GH_DEFAULT_REPO = 'ignaciozaballos/hcp-tracker';
+const GH_BRANCH = 'main';
+const GH_PATH = 'data/rondas-extra.json';
+
+function loadGithubConfig(){
+  try{ const raw = localStorage.getItem(GH_CONFIG_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+function saveGithubConfig(cfg){ try{ localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){} }
+function clearGithubConfig(){ try{ localStorage.removeItem(GH_CONFIG_KEY); }catch(e){} }
+
+function utf8ToBase64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function base64ToUtf8(b64){
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+function setGithubStatus(text, isError){
+  const el = document.getElementById('githubSyncStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = isError ? 'var(--bad)' : 'var(--muted)';
+  el.style.borderColor = isError ? 'var(--bad)' : 'var(--line)';
+}
+
+function refreshGithubStatusLine(){
+  const cfg = loadGithubConfig();
+  if(!cfg || !cfg.token){
+    setGithubStatus(`GitHub: sin configurar (repo por defecto: ${GH_DEFAULT_REPO}). Pulsa "☁️ Sincronizar" o "⚙️" para configurarlo.`);
+    return;
+  }
+  const when = cfg.lastSync ? new Date(cfg.lastSync).toLocaleString('es-ES') : 'nunca';
+  setGithubStatus(`GitHub (${cfg.repo}): última sincronización ${when}.`);
+}
+
+async function githubApiFetch(cfg, options){
+  const url = `https://api.github.com/repos/${cfg.repo}/contents/${GH_PATH}`;
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Authorization': `token ${cfg.token}`,
+      'Accept': 'application/vnd.github+json',
+      ...(options && options.headers),
+    },
+  });
+}
+
+async function performGithubSync(){
+  const cfg = loadGithubConfig();
+  if(!cfg || !cfg.token){ openGithubModal(); return; }
+
+  setGithubStatus('Sincronizando con GitHub…');
+  const extra = loadExtra();
+  const content = JSON.stringify(extra, null, 2);
+
+  try{
+    let sha = null;
+    const getResp = await githubApiFetch(cfg, {method:'GET'});
+    if(getResp.status === 200){
+      const getData = await getResp.json();
+      sha = getData.sha;
+    } else if(getResp.status !== 404){
+      const body = await getResp.text();
+      throw new Error(`GitHub respondió ${getResp.status} al leer el archivo (${body.slice(0,150)})`);
+    }
+
+    const putResp = await githubApiFetch(cfg, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        message: `Sincroniza rondas añadidas (${new Date().toISOString()})`,
+        content: utf8ToBase64(content),
+        branch: GH_BRANCH,
+        ...(sha ? {sha} : {}),
+      }),
+    });
+    if(!putResp.ok){
+      const body = await putResp.text();
+      throw new Error(`GitHub respondió ${putResp.status} al guardar (${body.slice(0,150)})`);
+    }
+
+    cfg.lastSync = new Date().toISOString();
+    saveGithubConfig(cfg);
+    refreshGithubStatusLine();
+    alert('Sincronizado correctamente con GitHub.');
+  }catch(err){
+    console.error('Error sincronizando con GitHub', err);
+    setGithubStatus('Error al sincronizar: ' + err.message + ' — si estás viendo esta página dentro de claude.ai, esta función solo funciona en tu versión publicada en GitHub Pages.', true);
+  }
+}
+
+async function tryAutoPullOnEmptyBrowser(){
+  const extra = loadExtra();
+  const hasLocal = extra.oficiales.length > 0 || extra.no_oficiales.length > 0;
+  if(hasLocal) return; // nunca pisamos datos locales ya existentes
+  const cfg = loadGithubConfig();
+  const repo = (cfg && cfg.repo) || GH_DEFAULT_REPO;
+  try{
+    const resp = await fetch(`https://raw.githubusercontent.com/${repo}/${GH_BRANCH}/${GH_PATH}?_=${Date.now()}`);
+    if(!resp.ok) return; // aún no existe el archivo, o no accesible; silencioso
+    const data = await resp.json();
+    if(data && (Array.isArray(data.oficiales) || Array.isArray(data.no_oficiales))){
+      saveExtra({oficiales: data.oficiales || [], no_oficiales: data.no_oficiales || []});
+    }
+  }catch(err){
+    console.warn('No se pudo comprobar si hay datos sincronizados en GitHub (normal si estás en el preview de claude.ai).', err);
+  }
+}
+
+function openGithubModal(){
+  const cfg = loadGithubConfig();
+  document.getElementById('ghRepo').value = (cfg && cfg.repo) || GH_DEFAULT_REPO;
+  document.getElementById('ghToken').value = (cfg && cfg.token) || '';
+  document.getElementById('overlayGithub').classList.add('open');
+}
+function closeGithubModal(){ document.getElementById('overlayGithub').classList.remove('open'); }
+
+document.getElementById('btnGithubConfig').addEventListener('click', openGithubModal);
+document.getElementById('closeGithubModal').addEventListener('click', closeGithubModal);
+document.getElementById('ghCancel').addEventListener('click', closeGithubModal);
+document.getElementById('overlayGithub').addEventListener('click', (e)=>{ if(e.target.id==='overlayGithub') closeGithubModal(); });
+
+document.getElementById('ghSave').addEventListener('click', ()=>{
+  const repo = document.getElementById('ghRepo').value.trim() || GH_DEFAULT_REPO;
+  const token = document.getElementById('ghToken').value.trim();
+  if(!token){ alert('Pega tu Personal Access Token de GitHub.'); return; }
+  const prev = loadGithubConfig();
+  saveGithubConfig({repo, token, lastSync: prev ? prev.lastSync : null});
+  closeGithubModal();
+  refreshGithubStatusLine();
+  performGithubSync();
+});
+document.getElementById('ghForget').addEventListener('click', ()=>{
+  if(confirm('¿Olvidar el token guardado en este navegador? Tendrás que volver a pegarlo para sincronizar.')){
+    clearGithubConfig();
+    closeGithubModal();
+    refreshGithubStatusLine();
+  }
+});
+document.getElementById('btnGithubSync').addEventListener('click', performGithubSync);
+
 /* ================= Import Excel ================= */
 function excelCellToISO(v){
   if(v==null || v==='') return null;
@@ -1380,7 +1556,8 @@ function syncImportBanner(){
 populateCampoSelect();
 renderHolesGrid();
 syncImportBanner();
-render();
+refreshGithubStatusLine();
+tryAutoPullOnEmptyBrowser().finally(render);
 
 </script>
 </body>
