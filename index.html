@@ -240,7 +240,8 @@
     </div>
     <div class="header-actions">
       <input type="file" id="fileImportExcel" accept=".xlsx" style="display:none;">
-      <button class="btn secondary" id="btnImportExcel" title="Lee un Excel con el mismo formato de la plantilla y sustituye los datos de base">📥 Cargar Excel</button>
+      <button class="btn secondary" id="btnImportExcel" title="Lee un Excel con el mismo formato de la plantilla y sustituye los datos de base">📥 Importar Excel</button>
+      <button class="btn secondary" id="btnExportExcel" title="Descarga un Excel con el mismo formato, incluyendo las rondas que hayas añadido desde esta app (copia de seguridad)">💾 Exportar Excel</button>
       <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
       <button class="btn secondary toggle-pp" id="btnTogglePP" title="Excluye del cálculo teórico las vueltas jugadas en pistas Pitch & Putt (las oficiales de P&P nunca se excluyen)">⛳ Excluir Pitch&nbsp;&amp;&nbsp;Putt</button>
       <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar añadidas</button>
@@ -1171,6 +1172,92 @@ document.getElementById('filterTabs').addEventListener('click', (e)=>{
   currentFilter = e.target.dataset.f;
   [...document.getElementById('filterTabs').children].forEach(b=>b.classList.toggle('active', b===e.target));
   renderTable(lastResult.table);
+});
+
+/* ================= Guardar archivo (Artifact o navegador normal, p.ej. GitHub Pages) ================= */
+async function saveFileForUser(filename, blob){
+  try{
+    if(window.claude && typeof window.claude.use === 'function'){
+      const downloads = await window.claude.use('downloads');
+      if(downloads){
+        await downloads.save({filename, data: blob});
+        return true;
+      }
+    }
+  }catch(err){
+    console.warn('Capacidad "downloads" no disponible o rechazada, uso descarga normal del navegador.', err);
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  return true;
+}
+
+/* ================= Exportar Excel (copia de seguridad, mismo formato de la plantilla) ================= */
+function buildExportWorkbook(){
+  const data = getActiveData();
+  const extra = loadExtra();
+  const wb = XLSX.utils.book_new();
+
+  // --- Campos_Barras ---
+  const campHeaders = ["Club / Campo","Barra (tees)","ID (auto)","CR 18h","Slope 18h","CR 9h Ida","Slope 9h Ida",
+                        "CR 9h Vuelta","Slope 9h Vuelta","Par Total (ref.)","Notas"];
+  for(let h=1; h<=18; h++) campHeaders.push(`P.H${h}`);
+  for(let h=1; h<=18; h++) campHeaders.push(`SI.H${h}`);
+  campHeaders.push("Distancia (km)");
+  const campRows = [[], [], campHeaders];
+  for(const key of Object.keys(data.campos).sort()){
+    const c = data.campos[key];
+    const sep = key.lastIndexOf(' - ');
+    const club = sep>=0 ? key.slice(0, sep) : key;
+    const barra = sep>=0 ? key.slice(sep+3) : '';
+    const partot = c.par.reduce((a,b)=>a+b,0);
+    campRows.push([club, barra, key, c.cr18, c.sl18, c.cr9i, c.sl9i, c.cr9v, c.sl9v, partot, '',
+                    ...c.par, ...c.si, c.km ?? '']);
+  }
+  const wsCampos = XLSX.utils.aoa_to_sheet(campRows);
+  XLSX.utils.book_append_sheet(wb, wsCampos, 'Campos_Barras');
+
+  // --- Rondas_Oficiales ---
+  const ofHeaders = ["Fecha","Club / Campo","Barra","Tipo de vuelta","PCC (ASC)","Hcp de Juego","Resultado Stableford",
+                      "Puntuación ajustada (RBA)","CR usado","Slope usado","Diferencial (RFEG)","HCP Index vigente (RFEG)","Notas / Torneo"];
+  const ofRows = [[], [], ofHeaders];
+  const allOficiales = [...data.oficiales, ...extra.oficiales].sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0));
+  for(const o of allOficiales){
+    ofRows.push([o.fecha, o.campo||'', '', o.es18?'18 hoyos':'9 hoyos', '', '', '', '', '', '', o.diferencial, '', o.notas||'']);
+  }
+  const wsOf = XLSX.utils.aoa_to_sheet(ofRows);
+  XLSX.utils.book_append_sheet(wb, wsOf, 'Rondas_Oficiales');
+
+  // --- Rondas_No_Oficiales ---
+  const noHeaders = ["Fecha","Campo - Barra (elige de la lista)","Tipo de vuelta"];
+  for(let h=1; h<=18; h++) noHeaders.push(`H${h}`);
+  noHeaders.push("Total golpes (bruto)","Diferencial (pendiente app)","Notas");
+  const noRows = [[], [], noHeaders];
+  const allNo = [...data.no_oficiales, ...extra.no_oficiales].sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0));
+  for(const n of allNo){
+    const total = n.holes.reduce((a,v)=> a + (v!=null?v:0), 0);
+    noRows.push([n.fecha, n.campo, n.tipo, ...n.holes.map(v=>v==null?'':v), total, '', '']);
+  }
+  const wsNo = XLSX.utils.aoa_to_sheet(noRows);
+  XLSX.utils.book_append_sheet(wb, wsNo, 'Rondas_No_Oficiales');
+
+  return wb;
+}
+
+document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
+  try{
+    const wb = buildExportWorkbook();
+    const arrayBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([arrayBuf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const stamp = new Date().toISOString().slice(0,10);
+    await saveFileForUser(`Handicap_Tracker_Copia_${stamp}.xlsx`, blob);
+  }catch(err){
+    console.error('Error exportando Excel', err);
+    alert('No se ha podido generar el Excel: ' + err.message);
+  }
 });
 
 /* ================= Import Excel ================= */
