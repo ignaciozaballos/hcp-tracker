@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCP · Panel de hándicap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg: #0B1210;
+    --panel: #101815;
+    --panel-2: #141F1A;
+    --line: #24342C;
+    --line-soft: #1B2721;
+    --text: #E7EDE8;
+    --muted: #8CA097;
+    --muted-2: #5F726A;
+    --oficial: #C9A24B;
+    --completo: #5FA777;
+    --solo18: #5B90A6;
+    --bad: #C1604A;
+    --good: #6FBE8C;
+    --radius: 3px;
+    color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]){
+      --bg:#F3F5F2; --panel:#FFFFFF; --panel-2:#F7F9F6; --line:#DCE3DD; --line-soft:#E7ECE6;
+      --text:#141B16; --muted:#5C6B62; --muted-2:#8A968E;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F3F5F2; --panel:#FFFFFF; --panel-2:#F7F9F6; --line:#DCE3DD; --line-soft:#E7ECE6;
+    --text:#141B16; --muted:#5C6B62; --muted-2:#8A968E;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .num{font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric: tabular-nums;}
+
+  .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 60px;}
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line);
+    gap:16px;flex-wrap:wrap;
+  }
+  header .id{display:flex;flex-direction:column;gap:2px;}
+  header h1{
+    margin:0;font-size:20px;font-weight:800;letter-spacing:0.2px;
+  }
+  header h1 span{color:var(--muted-2);font-weight:600;}
+  header .sub{color:var(--muted);font-size:12.5px;}
+  .btn{
+    background:var(--completo);color:#0B1210;border:none;border-radius:var(--radius);
+    padding:10px 16px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
+    transition:filter .12s ease;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{
+    background:transparent;color:var(--text);border:1px solid var(--line);
+  }
+  .btn.secondary:hover{border-color:var(--muted-2);}
+  .btn.toggle-pp.active{background:var(--bad);color:#1a0d09;border-color:var(--bad);font-weight:700;}
+  .row-actions{display:flex;gap:6px;}
+  .row-actions button{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:3px 7px;border-radius:2px;font-size:12px;cursor:pointer;
+  }
+  .row-actions button:hover{border-color:var(--muted-2);color:var(--text);}
+  .row-actions button.danger:hover{border-color:var(--bad);color:var(--bad);}
+  .from-excel-tag{font-size:10.5px;color:var(--muted-2);font-style:italic;}
+  .import-banner{
+    background:rgba(95,167,119,.12);border:1px solid var(--completo);color:var(--completo);
+    padding:7px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;display:none;
+  }
+
+  /* ---------- Goal panel ---------- */
+  .goal-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .goal-form select, .goal-form input{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:8px 9px;border-radius:2px;font-family:inherit;font-size:13px;
+  }
+  .goal-form input{width:110px;}
+  .goal-current{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+  .goal-current .big{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;}
+  .goal-current .arrow{color:var(--muted-2);font-size:18px;}
+  .goal-current .target{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--completo);font-weight:700;}
+  .goal-bar-track{height:10px;border-radius:5px;background:var(--line-soft);overflow:hidden;margin-bottom:10px;position:relative;}
+  .goal-bar-fill{height:100%;background:var(--completo);border-radius:5px;transition:width .3s ease;}
+  .goal-note{font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .goal-note.good{color:var(--good);}
+  .goal-note.warn{color:var(--bad);}
+  .goal-empty{color:var(--muted-2);font-size:12.5px;}
+  .header-actions{display:flex;gap:8px;}
+
+  /* ---------- Stat row ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(3,1fr) 1.1fr;gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;margin-bottom:16px;
+  }
+  .stat-card{background:var(--panel);padding:16px 18px;}
+  .stat-card .label{
+    font-size:11px;letter-spacing:.3px;color:var(--muted);margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .stat-card .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .stat-card .value{font-size:38px;font-weight:700;line-height:1;}
+  .stat-card .delta{font-size:12.5px;margin-top:8px;color:var(--muted);}
+  .stat-card .delta.up{color:var(--bad);}
+  .stat-card .delta.down{color:var(--good);}
+  .mini-stats{display:flex;flex-direction:column;gap:10px;padding:16px 18px;background:var(--panel);}
+  .mini-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);border-bottom:1px dashed var(--line-soft);padding-bottom:8px;}
+  .mini-row:last-child{border-bottom:none;padding-bottom:0;}
+  .mini-row b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+  /* ---------- Year breakdown ---------- */
+  .year-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .year-table th{
+    text-align:right;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
+    padding:0 10px 8px;border-bottom:1px solid var(--line);font-weight:700;
+  }
+  .year-table th:first-child, .year-table td:first-child{text-align:left;}
+  .year-table td{padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--line-soft);}
+  .year-table tr.total-row td{border-top:1px solid var(--line);border-bottom:none;font-weight:700;color:var(--text);padding-top:9px;}
+  .year-table tr.total-row{color:var(--text);}
+  .year-table td.year-label{font-family:'Manrope',sans-serif;font-weight:700;color:var(--text);}
+
+  /* ---------- Panels ---------- */
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;margin-bottom:16px;
+  }
+  .panel h2{
+    margin:0 0 14px;font-size:13px;letter-spacing:.3px;color:var(--muted);
+    display:flex;justify-content:space-between;align-items:center;font-weight:700;
+  }
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);font-weight:600;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend .dot{width:8px;height:8px;border-radius:50%;}
+  .chart-wrap{height:340px;position:relative;}
+
+  /* ---------- Two column ---------- */
+  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;}
+  @media (max-width:920px){ .grid2{grid-template-columns:1fr;} .stats{grid-template-columns:1fr 1fr;} .stats .mini-stats{grid-column:span 2;} }
+  @media (max-width:600px){ .stats{grid-template-columns:1fr;} .stats .mini-stats{grid-column:span 1;} }
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:left;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
+    padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700;
+  }
+  tbody td{padding:8px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);}
+  tbody tr:hover{background:var(--panel-2);}
+  tbody td.num, thead th.num{font-family:'JetBrains Mono',monospace;text-align:right;}
+  .badge{
+    display:inline-block;padding:2px 7px;border-radius:2px;font-size:10.5px;font-weight:700;
+    letter-spacing:.2px;
+  }
+  .badge.oficial{background:rgba(201,162,75,.16);color:var(--oficial);}
+  .badge.no-oficial{background:rgba(95,167,119,.14);color:var(--completo);}
+  .table-scroll{max-height:520px;overflow-y:auto;}
+  .filter-tabs{display:flex;gap:6px;}
+  .filter-tabs button{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:2px;cursor:pointer;
+  }
+  .filter-tabs button.active{background:var(--completo);color:#0B1210;border-color:var(--completo);}
+
+  .campo-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);}
+  .campo-row:last-child{border-bottom:none;}
+  .campo-name{font-size:12.5px;}
+  .campo-name small{display:block;color:var(--muted-2);font-size:10.5px;margin-top:2px;}
+  .campo-stat{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
+  .campo-stat small{display:block;color:var(--muted-2);font-family:'Manrope',sans-serif;font-size:10px;font-weight:500;}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(4,8,6,.6);display:none;align-items:flex-start;justify-content:center;
+    z-index:50;padding:40px 16px;overflow-y:auto;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    width:100%;max-width:560px;padding:20px 22px 22px;
+  }
+  .modal h3{margin:0 0 4px;font-size:16px;}
+  .modal .modal-sub{color:var(--muted);font-size:12px;margin-bottom:16px;}
+  .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11.5px;color:var(--muted);font-weight:600;}
+  .field input, .field select{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:8px 9px;border-radius:2px;font-family:inherit;font-size:13px;
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--completo);outline-offset:-1px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .toggle-group{display:flex;gap:8px;margin-bottom:14px;}
+  .toggle-group button{
+    flex:1;padding:9px;border-radius:2px;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;
+  }
+  .toggle-group button.active{background:var(--oficial);color:#0B1210;border-color:var(--oficial);}
+  .toggle-group button.active.no-of{background:var(--completo);border-color:var(--completo);}
+  .holes-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-top:4px;}
+  .holes-grid input{padding:6px 2px;text-align:center;font-size:12px;}
+  .holes-label{font-size:10px;color:var(--muted-2);text-align:center;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .close-x{
+    position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);
+    font-size:18px;cursor:pointer;line-height:1;
+  }
+  .modal{position:relative;}
+  .hint{font-size:11px;color:var(--muted-2);margin-top:2px;}
+  .empty-msg{color:var(--muted-2);font-size:12.5px;padding:20px 0;text-align:center;}
+
+  footer{margin-top:22px;color:var(--muted-2);font-size:11px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="id">
+      <h1>HCP TRACKER <span>· Real vs. Teórico</span></h1>
+      <div class="sub" id="headerSub">—</div>
+    </div>
+    <div class="header-actions">
+      <input type="file" id="fileImportExcel" accept=".xlsx" style="display:none;">
+      <button class="btn secondary" id="btnImportExcel" title="Lee un Excel con el mismo formato de la plantilla y sustituye los datos de base">📥 Cargar Excel</button>
+      <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
+      <button class="btn secondary toggle-pp" id="btnTogglePP" title="Excluye del cálculo teórico las vueltas jugadas en pistas Pitch & Putt (las oficiales de P&P nunca se excluyen)">⛳ Excluir Pitch&nbsp;&amp;&nbsp;Putt</button>
+      <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar añadidas</button>
+      <button class="btn" id="btnAdd">+ Nueva ronda</button>
+    </div>
+  </header>
+
+  <div id="errorBar" style="display:none;background:rgba(193,96,74,.15);border:1px solid var(--bad);color:var(--bad);padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;"></div>
+  <div id="importBanner" class="import-banner"></div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label"><span><span class="dot" style="background:var(--oficial)"></span>Oficial de torneo</span></div>
+      <div class="value num" id="statOficial">—</div>
+      <div class="delta" id="deltaOficial">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label"><span><span class="dot" style="background:var(--completo)"></span>Teórico completo</span></div>
+      <div class="value num" id="statCompleto">—</div>
+      <div class="delta" id="deltaCompleto">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label"><span><span class="dot" style="background:var(--solo18)"></span>Teórico solo 18h</span></div>
+      <div class="value num" id="statSolo18">—</div>
+      <div class="delta" id="deltaSolo18">—</div>
+    </div>
+    <div class="mini-stats">
+      <div class="mini-row"><span>Vueltas totales</span><b id="miniTotal">—</b></div>
+      <div class="mini-row"><span>Oficiales / No oficiales</span><b id="miniSplit">—</b></div>
+      <div class="mini-row"><span>Mejor diferencial (histórico)</span><b id="miniBest">—</b></div>
+      <div class="mini-row"><span>Última vuelta</span><b id="miniLast">—</b></div>
+      <div class="mini-row"><span>Distancia total jugada</span><b id="miniKm">—</b></div>
+    </div>
+  </div>
+
+  <div class="panel" id="yearPanel">
+    <h2><span>RESUMEN POR AÑO</span></h2>
+    <table class="year-table">
+      <thead>
+        <tr><th>Año</th><th>Rondas</th><th>Hoyos jugados</th><th>Mejor diferencial</th><th>Distancia</th></tr>
+      </thead>
+      <tbody id="yearBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="scorePanel">
+    <h2><span>RESUMEN POR PUNTUACIÓN</span></h2>
+    <div class="hint" style="margin-bottom:10px;">Solo vueltas no oficiales (son las únicas de las que tenemos el detalle golpe a golpe).</div>
+    <table class="year-table">
+      <thead>
+        <tr><th>Año</th><th>Hoyos</th><th>Birdie</th><th>Par</th><th>Bogey</th><th>Doble bogey</th><th>Más</th></tr>
+      </thead>
+      <tbody id="scoreBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="goalPanel">
+    <h2><span>OBJETIVO DE HÁNDICAP</span></h2>
+    <div class="goal-form">
+      <select id="goalTrack">
+        <option value="completo">Teórico completo</option>
+        <option value="oficial">Oficial de torneo</option>
+        <option value="solo18h">Teórico solo 18h</option>
+      </select>
+      <input type="number" step="0.1" id="goalTarget" placeholder="p.ej. 18.0">
+      <button class="btn" id="btnSaveGoal">Guardar objetivo</button>
+      <button class="btn secondary" id="btnClearGoal" style="display:none;">Quitar</button>
+    </div>
+    <div id="goalStatus"></div>
+  </div>
+
+  <div class="panel">
+    <h2>
+      <span>EVOLUCIÓN DEL HÁNDICAP</span>
+      <span class="legend">
+        <span><span class="dot" style="background:var(--oficial)"></span>Oficial</span>
+        <span><span class="dot" style="background:var(--completo)"></span>Teórico completo</span>
+        <span><span class="dot" style="background:var(--solo18)"></span>Teórico 18h</span>
+      </span>
+    </h2>
+    <div class="chart-wrap"><canvas id="evoChart"></canvas></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>
+        <span>HISTÓRICO DE VUELTAS</span>
+        <span class="filter-tabs" id="filterTabs">
+          <button data-f="all" class="active">Todas</button>
+          <button data-f="oficial">Oficiales</button>
+          <button data-f="no-oficial">No oficiales</button>
+        </span>
+      </h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Campo</th><th>Tipo</th><th class="num">Dif.</th><th></th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="roundsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        <span>POR CAMPO</span>
+        <span class="filter-tabs" id="campoScopeTabs">
+          <button data-scope="all" class="active">Todas</button>
+          <button data-scope="last5">Últimas 5</button>
+        </span>
+      </h2>
+      <div id="campoBreakdown"></div>
+    </div>
+  </div>
+
+  <footer>Motor de cálculo: WHS (mejores N de últimos 20 diferenciales) · tope de doble bogey neto · aproximación propia para la conversión de 9→18 hoyos</footer>
+</div>
+
+<!-- Modal: nueva ronda -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close-x" id="closeModal">✕</button>
+    <h3 id="modalTitle">Nueva ronda</h3>
+    <div class="modal-sub" id="modalSub">Se guarda en este navegador y se suma al cálculo al momento.</div>
+
+    <div class="toggle-group">
+      <button id="tgOficial" class="active">Oficial</button>
+      <button id="tgNoOficial" class="no-of">No oficial</button>
+    </div>
+
+    <div class="field">
+      <label>Fecha</label>
+      <input type="date" id="fFecha">
+    </div>
+
+    <!-- Oficial fields -->
+    <div id="oficialFields">
+      <div class="field">
+        <label>Campo (texto libre)</label>
+        <input type="text" id="fCampoOficial" placeholder="p.ej. ESCORPION">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Tipo de vuelta</label>
+          <select id="fTipoOficial"><option>18 hoyos</option><option>9 hoyos</option></select>
+        </div>
+        <div class="field">
+          <label>Diferencial (ya calculado por la RFEG)</label>
+          <input type="number" step="0.1" id="fDifOficial" placeholder="p.ej. 24.3">
+        </div>
+      </div>
+      <div class="field">
+        <label>Notas / Torneo</label>
+        <input type="text" id="fNotasOficial">
+      </div>
+    </div>
+
+    <!-- No oficial fields -->
+    <div id="noOficialFields" style="display:none;">
+      <div class="field">
+        <label>Campo - Barra</label>
+        <select id="fCampoNo"></select>
+      </div>
+      <div class="field">
+        <label>Tipo de vuelta</label>
+        <select id="fTipoNo">
+          <option value="18 hoyos">18 hoyos</option>
+          <option value="9 hoyos - Ida (H1-H9)">9 hoyos - Ida (H1-H9)</option>
+          <option value="9 hoyos - Vuelta (H10-H18)">9 hoyos - Vuelta (H10-H18)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="holesLabel">Golpes por hoyo</label>
+        <div class="holes-grid" id="holesGrid"></div>
+        <div class="hint" id="totalHint"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelBtn">Cancelar</button>
+      <button class="btn" id="saveBtn">Guardar ronda</button>
+    </div>
+  </div>
+</div>
+
+<script id="seed-data" type="application/json">{"campos": {"OLIVA NOVA - OLIVA NOVA - Amarillas": {"cr18": 70.7, "sl18": 135, "cr9i": 35.2, "sl9i": 138, "cr9v": 35.5, "sl9v": 131, "par": [5, 4, 3, 4, 4, 3, 4, 5, 4, 4, 3, 4, 4, 5, 4, 3, 5, 4], "si": [7, 13, 15, 9, 17, 3, 5, 11, 1, 4, 12, 6, 8, 16, 2, 18, 10, 14], "km": 5.784}, "ESCORPION - Nuevos+Lagos - Azules": {"cr18": 70.5, "sl18": 130, "cr9i": 36.6, "sl9i": 136, "cr9v": 33.9, "sl9v": 125, "par": [5, 4, 5, 3, 5, 4, 4, 3, 4, 4, 4, 3, 4, 3, 5, 4, 3, 5], "si": [15, 5, 13, 17, 9, 1, 3, 11, 7, 6, 10, 18, 4, 16, 14, 12, 8, 2], "km": 5.766}, "ESCORPION - Masía+Lagos - Azules": {"cr18": 69, "sl18": 125, "cr9i": 35.1, "sl9i": 126, "cr9v": 33.9, "sl9v": 125, "par": [5, 4, 4, 4, 4, 3, 4, 3, 5, 4, 4, 3, 4, 3, 5, 4, 3, 5], "si": [6, 16, 10, 2, 4, 18, 8, 14, 12, 5, 9, 17, 3, 15, 13, 11, 7, 1], "km": 5.551}, "ESCORPION - Masía+Lagos - Amarillas": {"cr18": 68, "sl18": 123, "cr9i": 34.6, "sl9i": 124, "cr9v": 33.4, "sl9v": 121, "par": [5, 4, 4, 4, 4, 3, 4, 3, 5, 4, 4, 3, 4, 3, 5, 4, 3, 5], "si": [6, 16, 10, 2, 4, 18, 8, 14, 12, 5, 9, 17, 3, 15, 13, 11, 7, 1], "km": 5.338}, "ESCORPION - Nuevos+Lagos - Amarillas": {"cr18": 69.2, "sl18": 126, "cr9i": 35.8, "sl9i": 131, "cr9v": 33.4, "sl9v": 121, "par": [5, 4, 5, 3, 5, 4, 4, 3, 4, 4, 4, 3, 4, 3, 5, 4, 3, 5], "si": [15, 5, 13, 17, 9, 1, 3, 11, 7, 6, 10, 18, 4, 16, 14, 12, 8, 2], "km": 5.492}, "ESCORPION - Masía+Nuevos - Amarillas": {"cr18": 70.4, "sl18": 128, "cr9i": 34.6, "sl9i": 124, "cr9v": 35.8, "sl9v": 131, "par": [5, 4, 4, 4, 4, 3, 4, 3, 5, 5, 4, 5, 3, 5, 4, 4, 3, 4], "si": [6, 16, 10, 2, 4, 18, 8, 14, 12, 15, 5, 13, 17, 9, 1, 3, 11, 7], "km": 5.74}, "ESCORPION - Masía+Nuevos - Azules": {"cr18": 71.2, "sl18": 130, "cr9i": 34.6, "sl9i": 124, "cr9v": 36.6, "sl9v": 136, "par": [5, 4, 4, 4, 4, 3, 4, 3, 4, 5, 4, 5, 3, 5, 4, 4, 3, 4], "si": [6, 16, 10, 2, 4, 18, 8, 14, 12, 15, 5, 13, 17, 9, 1, 3, 11, 7], "km": 5.895}, "ESCORPION - Pitch & Putt - Amarillas": {"cr18": 49.3, "sl18": 57, "cr9i": 24.9, "sl9i": 58, "cr9v": 24.5, "sl9v": 55, "par": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], "si": [15, 11, 13, 9, 3, 17, 1, 7, 5, 8, 10, 18, 6, 16, 2, 14, 4, 12], "km": 1.364}, "FORESSOS - Amarillas": {"cr18": 71.6, "sl18": 128, "cr9i": 35.5, "sl9i": 126, "cr9v": 36.1, "sl9v": 129, "par": [4, 4, 5, 4, 3, 5, 3, 4, 4, 4, 4, 5, 4, 3, 5, 4, 3, 4], "si": [1, 2, 7, 9, 8, 5, 4, 6, 3, 6, 9, 4, 2, 8, 7, 5, 3, 1], "km": 5.969}, "MASIA LAS ESTRELLAS - P&P - Verdes": {"cr18": 50, "sl18": 63, "cr9i": 24.8, "sl9i": 61, "cr9v": 25.2, "sl9v": 65, "par": [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], "si": [10, 12, 14, 18, 16, 4, 6, 2, 8, 9, 11, 13, 17, 15, 3, 5, 1, 7], "km": 1.416}, "LA SELLA GOLF (CAMPO) - Llebeig+Gregal - Amarillas": {"cr18": 72.7, "sl18": 136, "cr9i": 36.7, "sl9i": 140, "cr9v": 36, "sl9v": 131, "par": [4, 4, 5, 4, 3, 4, 4, 3, 5, 4, 5, 4, 3, 4, 3, 4, 4, 5], "si": [15, 17, 5, 3, 7, 11, 1, 9, 13, 8, 2, 16, 14, 12, 18, 4, 6, 10], "km": 5.964}, "LA SELLA GOLF (CAMPO) - Llebeig+Mestral - Amarillas": {"cr18": 71.8, "sl18": 133, "cr9i": 36.7, "sl9i": 140, "cr9v": 35.1, "sl9v": 126, "par": [4, 4, 5, 4, 3, 4, 4, 3, 5, 3, 5, 4, 4, 5, 3, 4, 5, 3], "si": [15, 17, 5, 3, 7, 11, 1, 9, 13, 4, 8, 16, 2, 14, 18, 10, 6, 12], "km": 5.798}, "LA SELLA GOLF (CAMPO) - Gregal+Mestral - Amarillas": {"cr18": 71.1, "sl18": 129, "cr9i": 36, "sl9i": 131, "cr9v": 35.1, "sl9v": 126, "par": [4, 5, 4, 3, 4, 3, 4, 4, 5, 3, 5, 4, 4, 5, 3, 4, 5, 3], "si": [7, 1, 15, 13, 11, 17, 3, 5, 9, 4, 8, 16, 2, 14, 18, 10, 6, 12], "km": 5.73}, "CLUB DE GOLF DE JAVEA - Amarillas": {"cr18": 69.8, "sl18": 128, "cr9i": 35, "sl9i": 130, "cr9v": 34.8, "sl9v": 125, "par": [3, 4, 5, 4, 5, 4, 3, 4, 4, 3, 4, 4, 5, 5, 4, 3, 4, 4], "si": [15, 9, 7, 1, 13, 3, 17, 11, 5, 10, 8, 2, 16, 14, 4, 18, 12, 6], "km": 5.674}, "CLUB DE GOLF EL BOSQUE - Amarillas": {"cr18": 71.5, "sl18": 140, "cr9i": 36.1, "sl9i": 143, "cr9v": 35.4, "sl9v": 137, "par": [4, 4, 5, 3, 4, 4, 5, 3, 4, 4, 5, 3, 4, 3, 5, 4, 4, 4], "si": [11, 3, 15, 17, 7, 13, 5, 9, 1, 12, 10, 14, 4, 18, 8, 16, 2, 6], "km": 5.744}, "CAMPO DE GOLF EL SALER - Amarillas": {"cr18": 72.7, "sl18": 133, "cr9i": 35.7, "sl9i": 133, "cr9v": 37, "sl9v": 134, "par": [4, 4, 5, 3, 5, 4, 4, 4, 3, 4, 5, 3, 4, 4, 5, 4, 3, 4], "si": [8, 6, 4, 16, 12, 2, 14, 10, 18, 5, 3, 17, 13, 11, 9, 7, 15, 1], "km": 6.042}, "CLUB DE GOLF IFACH - Amarillas": {"cr18": 58.8, "sl18": 109, "cr9i": 29.4, "sl9i": 109, "cr9v": 29.4, "sl9v": 109, "par": [3, 4, 4, 3, 3, 3, 4, 3, 3, 3, 4, 4, 3, 3, 3, 4, 3, 3], "si": [17, 5, 3, 15, 9, 11, 1, 13, 7, 18, 6, 4, 16, 10, 12, 2, 14, 8], "km": 2.94}, "MEDITERRANEO GOLF - Amarillas": {"cr18": 71.7, "sl18": 140, "cr9i": 36, "sl9i": 139, "cr9v": 35.7, "sl9v": 142, "par": [4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4], "si": [13, 15, 3, 1, 7, 17, 9, 5, 11, 8, 18, 10, 4, 16, 2, 12, 14, 6], "km": 5.867}, "REAL CLUB DE GOLF LA HERRERIA - Amarillas": {"cr18": 71.2, "sl18": 142, "cr9i": 35.4, "sl9i": 143, "cr9v": 35.8, "sl9v": 141, "par": [4, 4, 3, 4, 4, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 4, 4, 4], "si": [3, 1, 17, 7, 5, 11, 13, 9, 15, 8, 2, 10, 14, 6, 16, 18, 12, 4], "km": 5.957}, "REAL CLUB DE GOLF DE MANISES - Amarillas": {"cr18": 70.7, "sl18": 138, "cr9i": 35.4, "sl9i": 138, "cr9v": 35.4, "sl9v": 138, "par": [4, 5, 4, 3, 5, 5, 3, 4, 3, 4, 5, 4, 3, 5, 5, 3, 4, 3], "si": [9, 15, 3, 13, 5, 11, 17, 1, 7, 10, 16, 4, 14, 6, 12, 18, 2, 8], "km": 5.808}}, "oficiales": [{"fecha": "2025-01-21", "diferencial": 38.0, "es18": true, "campo": "NONE", "notas": "Alta inicial de hándicap (sin torneo asociado)"}, {"fecha": "2025-01-25", "diferencial": 35.9, "es18": true, "campo": "MASIA LAS ESTRELLAS - P&P", "notas": "3ª PRUEBA RANKING LIGA DE ALUMNOS"}, {"fecha": "2025-02-23", "diferencial": 46.6, "es18": true, "campo": "MASIA LAS ESTRELLAS - P&P", "notas": "4ª PRUEBA RANKING DE ALUMNOS"}, {"fecha": "2025-02-23", "diferencial": 39.0, "es18": false, "campo": "FORESSOS", "notas": "4ª PRUEBA CIRCUITO DE NOVELES 24/25"}, {"fecha": "2025-03-29", "diferencial": 39.5, "es18": true, "campo": "MASIA LAS ESTRELLAS - P&P", "notas": "5ª PRUEBA CAMPEONATO DE ALUMNOS"}, {"fecha": "2025-03-30", "diferencial": 31.1, "es18": false, "campo": "FORESSOS", "notas": "5ª PRUEBA CIRCUITO DE NOVELES 24/25"}, {"fecha": "2025-05-10", "diferencial": 34.1, "es18": true, "campo": "ESCORPION", "notas": "SOCIAL MAYO SÁBADO"}, {"fecha": "2025-05-24", "diferencial": 31.8, "es18": true, "campo": "LA SELLA GOLF (CAMPO)", "notas": "MERCEDES TROPHY-VISAUTO 2025"}, {"fecha": "2025-06-15", "diferencial": 26.6, "es18": true, "campo": "ESCORPION", "notas": "LEVANTE WAGEN DOMINGO"}, {"fecha": "2025-11-16", "diferencial": 36.0, "es18": false, "campo": "FORESSOS", "notas": "3ª PRUEBA CIRCUITO DE NOVELES 25-26"}, {"fecha": "2025-11-23", "diferencial": 29.4, "es18": true, "campo": "ESCORPION", "notas": "SOCIAL NOVIEMBRE DOMINGO"}, {"fecha": "2026-01-11", "diferencial": 23.9, "es18": true, "campo": "ESCORPION", "notas": "SOCIAL ENERO DOMINGO"}, {"fecha": "2026-04-18", "diferencial": 31.6, "es18": true, "campo": "ESCORPION", "notas": "BMW - BERTOLIN 2026"}, {"fecha": "2026-08-06", "diferencial": 30.9, "es18": true, "campo": "ESCORPION", "notas": "SOCIAL AGOSTO ESCORPIÓN"}, {"fecha": "2026-08-11", "diferencial": 23.7, "es18": true, "campo": "OLIVA NOVA - OLIVA NOVA", "notas": "TORNEO MSC CRUCEROS - MARTES"}], "no_oficiales": [{"fecha": "2026-09-12", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 6, 5, 3, 6, 6, 5, 5, 5]}, {"fecha": "2026-09-05", "campo": "CLUB DE GOLF EL BOSQUE - Amarillas", "tipo": "18 hoyos", "holes": [5, 6, 6, 5, 5, 6, 7, 3, 5, 5, 5, 4, 6, 6, 7, 6, 5, 6]}, {"fecha": "2026-09-03", "campo": "ESCORPION - Masía+Lagos - Azules", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 7, 4, 5, 6, 3, 8, 6, 4, 7]}, {"fecha": "2026-08-28", "campo": "LA SELLA GOLF (CAMPO) - Llebeig+Mestral - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 5, 6, 4, 6, 8, 4, 6, 7, 4]}, {"fecha": "2026-08-24", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 5, 3, 5, 3, 6, 6, 4, 8]}, {"fecha": "2026-08-15", "campo": "CLUB DE GOLF DE JAVEA - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [4, 5, 7, 5, 7, 5, 4, 6, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-06-28", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 7, 5, 2, 4, 4, 6, 5, 5, 6]}, {"fecha": "2026-06-26", "campo": "ESCORPION - Nuevos+Lagos - Azules", "tipo": "18 hoyos", "holes": [6, 5, 7, 4, 6, 7, 6, 5, 5, 6, 4, 4, 7, 5, 8, 5, 6, 6]}, {"fecha": "2026-06-18", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 6, 6, 4, 6, 7, 7, 4, 6]}, {"fecha": "2026-06-11", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 7, 5, 6, 4, 6, 6, 6, 4, 6]}, {"fecha": "2026-06-04", "campo": "ESCORPION - Nuevos+Lagos - Azules", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 5, 4, 6, 6, 4, 7, 6, 5, 6]}, {"fecha": "2026-05-22", "campo": "ESCORPION - Nuevos+Lagos - Azules", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 4, 6, 4, 5, 7, 5, 5, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-05-22", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [3, 4, 4, 3, 5, 4, 5, 5, 3, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-05-17", "campo": "CLUB DE GOLF IFACH - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [3, 6, 3, 4, 4, 4, 5, 4, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-05-15", "campo": "CLUB DE GOLF DE JAVEA - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [4, 6, 6, 5, 7, 6, 4, 6, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-05-08", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 4, 6, 6, 6, 4, 6, 5, 5, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-04-10", "campo": "ESCORPION - Nuevos+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 5, 5, 4, 8, 9, 7, 5, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-04-10", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [3, 4, 5, 4, 4, 3, 3, 5, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-02-21", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [4, 2, 4, 3, 4, 3, 3, 4, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-02-20", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 5, 5, 5, 5, 4, 5, 4, 10, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-02-07", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 7, 5, 7, 6, 6, 4, 3, 5, null, null, null, null, null, null, null, null, null]}, {"fecha": "2026-01-30", "campo": "ESCORPION - Nuevos+Lagos - Azules", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 5, 5, 7, 5, 3, 8, 5, 3, 7]}, {"fecha": "2026-01-09", "campo": "ESCORPION - Nuevos+Lagos - Azules", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [8, 7, 7, 5, 6, 6, 5, 4, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-11-11", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 6, 6, 6, 7, 3, 8, 5, 7, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-09-25", "campo": "ESCORPION - Nuevos+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 5, 6, 5, 4, 4, 6, 5, 3, 7]}, {"fecha": "2025-09-14", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [5, 6, 7, 6, 7, 5, 5, 4, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-09-13", "campo": "CAMPO DE GOLF EL SALER - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 6, 8, 4, 7, 7, 6, 6, 5, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-09-10", "campo": "CLUB DE GOLF EL BOSQUE - Amarillas", "tipo": "18 hoyos", "holes": [6, 5, 9, 3, 6, 7, 8, 4, 6, 5, 8, 5, 8, 5, 8, 6, 5, 6]}, {"fecha": "2025-09-05", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [5, 4, 8, 6, 6, 6, 4, 4, 8, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-09-05", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 5, 6, 3, 6, 4, 5, 5, 6]}, {"fecha": "2025-08-27", "campo": "CLUB DE GOLF IFACH - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [3, 6, 6, 5, 3, 5, 5, 4, 3, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-08-25", "campo": "CLUB DE GOLF DE JAVEA - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 5, 6, 7, 6, 7, 4, 5, 7, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-08-22", "campo": "LA SELLA GOLF (CAMPO) - Llebeig+Gregal - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [5, 8, 7, 6, 4, 6, 6, 6, 8, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-08-14", "campo": "CAMPO DE GOLF EL SALER - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 7, 7, 5, 7, 5, 4, 6, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-08-06", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 5, 6, 6, 6, 5, 5, 5, 8, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-08-06", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 5, 5, 4, 8, 5, 6, 8, 6, 7]}, {"fecha": "2025-07-31", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 5, 6, 4, 6, 6, 6, 4, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-07-10", "campo": "REAL CLUB DE GOLF LA HERRERIA - Amarillas", "tipo": "18 hoyos", "holes": [6, 5, 4, 6, 5, 6, 4, 6, 7, 5, 6, 6, 6, 6, 8, 4, 6, 6]}, {"fecha": "2025-07-05", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [3, 4, 2, 4, 5, 5, 6, 2, 4, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-07-04", "campo": "ESCORPION - Masía+Lagos - Azules", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 4, 6, 4, 7, 4, 7, 7, 4, 7]}, {"fecha": "2025-06-21", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 4, 5, 8, 8, 4, 5, 4, 8, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-06-20", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 6, 6, 6, 6, 3, 6, 3, 8, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-06-16", "campo": "ESCORPION - Nuevos+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [7, 8, 6, 4, 8, 7, 5, 5, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-06-06", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "18 hoyos", "holes": [7, 4, 7, 6, 6, 3, 4, 4, 7, 5, 5, 4, 6, 6, 9, 6, 6, 9]}, {"fecha": "2025-06-04", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [8, 5, 6, 5, 7, 4, 6, 4, 5, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-06-01", "campo": "CLUB DE GOLF DE JAVEA - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [5, 7, 6, 6, 7, 6, 4, 7, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-05-26", "campo": "ESCORPION - Nuevos+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 6, 5, 7, 4, 6, 5, 7, 7]}, {"fecha": "2025-05-19", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "18 hoyos", "holes": [4, 3, 3, 4, 5, 4, 5, 3, 7, 4, 5, 4, 4, 6, 3, 3, 4, 4]}, {"fecha": "2025-05-16", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 5, 5, 6, 7, 6, 6, 3, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-05-15", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "18 hoyos", "holes": [6, 5, 3, 5, 4, 5, 5, 3, 4, 5, 5, 3, 4, 4, 4, 6, 3, 5]}, {"fecha": "2025-05-14", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "18 hoyos", "holes": [4, 4, 3, 3, 5, 3, 5, 4, 4, 4, 4, 3, 4, 3, 3, 3, 4, 6]}, {"fecha": "2025-05-04", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "18 hoyos", "holes": [7, 5, 8, 5, 5, 7, 7, 4, 9, 5, 6, 5, 6, 4, 6, 8, 5, 8]}, {"fecha": "2025-04-30", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 6, 5, 6, 6, 4, 4, 5, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-04-25", "campo": "LA SELLA GOLF (CAMPO) - Gregal+Mestral - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 8, 4, 4, 7, 3, 6, 6, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-04-21", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 7, 7, 5, 5, 8, 5, 6, 6, 5]}, {"fecha": "2025-04-06", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "18 hoyos", "holes": [5, 4, 2, 5, 5, 5, 4, 5, 4, 7, 3, 6, 4, 5, 4, 4, 4, 5]}, {"fecha": "2025-04-04", "campo": "ESCORPION - Masía+Lagos - Amarillas", "tipo": "9 hoyos - Vuelta (H10-H18)", "holes": [null, null, null, null, null, null, null, null, null, 6, 3, 4, 7, 6, 7, 8, 5, 8]}, {"fecha": "2025-03-16", "campo": "CLUB DE GOLF DE JAVEA - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 6, 6, 7, 7, 5, 5, 9, 6, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-03-07", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [6, 5, 6, 7, 5, 5, 6, 3, 9, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-02-28", "campo": "ESCORPION - Pitch & Putt - Amarillas", "tipo": "18 hoyos", "holes": [6, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 3, 4, 4, 7, 6, 4, 3]}, {"fecha": "2025-02-21", "campo": "ESCORPION - Masía+Nuevos - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [8, 7, 5, 6, 6, 6, 6, 4, 7, null, null, null, null, null, null, null, null, null]}, {"fecha": "2025-01-26", "campo": "REAL CLUB DE GOLF DE MANISES - Amarillas", "tipo": "9 hoyos - Ida (H1-H9)", "holes": [9, 6, 6, 4, 6, 7, 5, 6, 3, null, null, null, null, null, null, null, null, null]}]}</script>
+<script>
+/* ================= WHS-style engine (ported from the Python prototype) ================= */
+window.addEventListener('error', (ev)=>{
+  console.error('Error global no capturado:', ev.error || ev.message);
+  const bar = document.getElementById('errorBar');
+  if(bar){ bar.style.display='block'; bar.textContent = 'Error inesperado: ' + (ev.message||'revisa la consola del navegador (F12).'); }
+});
+
+const NUM_TABLE = {
+  1:[1,-2.0], 2:[1,-1.0], 3:[1,0.0], 4:[1,-1.0], 5:[1,0.0],
+  6:[2,-1.0], 7:[2,0.0], 8:[2,0.0], 9:[3,0.0], 10:[3,0.0],
+  11:[3,0.0], 12:[4,0.0], 13:[4,0.0], 14:[4,0.0], 15:[5,0.0],
+  16:[5,0.0], 17:[6,0.0], 18:[6,0.0], 19:[7,0.0], 20:[8,0.0]
+};
+function numToAverage(n){ n = Math.min(n,20); return NUM_TABLE[n]; }
+function round1(x){ return Math.round(x*10)/10; }
+
+function handicapIndex(diffsChrono){
+  if(!diffsChrono.length) return null;
+  const last20 = diffsChrono.slice(-20);
+  const n = last20.length;
+  const [take, adj] = numToAverage(n);
+  const best = [...last20].sort((a,b)=>a-b).slice(0,take);
+  const avg = best.reduce((a,b)=>a+b,0)/take;
+  return round1(avg+adj);
+}
+
+function courseHandicap(hcpIndex, slope, cr, par){
+  return Math.round(hcpIndex*slope/113 + (cr-par));
+}
+function allocateStrokes(ch, siList){
+  const n = siList.length;
+  const order = siList.map((v,i)=>i).sort((a,b)=>siList[a]-siList[b]);
+  const base = Math.floor(ch/n);
+  const extra = ch - base*n;
+  const strokes = new Array(n).fill(base);
+  if(ch>=0){ for(let k=0;k<extra;k++){ strokes[order[k]]++; } }
+  return strokes;
+}
+function capHoleScore(actual, par, strokesReceived){
+  return Math.min(actual, par+2+strokesReceived);
+}
+
+const PCC = 0.0;
+
+function isPitchPutt(campoKey){
+  if(!campoKey) return false;
+  const k = campoKey.toLowerCase();
+  return k.includes('p&p') || k.includes('pitch & putt') || k.includes('pitch&putt');
+}
+
+/**
+ * events: array of {fecha:'YYYY-MM-DD', oficial:bool, es18?:bool, diferencial?, campo, tipo, holes[18], notas}
+ * campos: {key: {cr18,sl18,cr9i,sl9i,cr9v,sl9v,par[18],si[18]}}
+ * options: {excludePP:boolean} - si true, las vueltas NO oficiales en pistas Pitch&Putt se excluyen por completo
+ *          (las oficiales de Pitch&Putt nunca se excluyen).
+ * returns {histOficial, histCompleto, hist18h, timeline, table, skipped}
+ */
+function processEvents(events, campos, options){
+  options = options || {};
+  const excludePP = !!options.excludePP;
+  const sorted = [...events].sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0));
+  const histOficial=[], histCompleto=[], hist18h=[];
+  const timeline=[];
+  const table=[];
+  const skipped=[];
+
+  for(const e of sorted){
+    if(e.oficial){
+      const dif = e.diferencial;
+      histCompleto.push(dif); histOficial.push(dif);
+      if(e.es18) hist18h.push(dif);
+      const campoOf = campos[e.campo];
+      const kmOf = campoOf ? (e.es18 ? campoOf.km : (campoOf.km!=null ? round1(campoOf.km/2) : null)) : null;
+      table.push({fecha:e.fecha, campo:e.campo||'—', tipo:e.es18?'18 hoyos':'9 hoyos', dif, oficial:true, notas:e.notas||'', id:e.id, source:e.source, km:kmOf});
+      timeline.push([e.fecha, handicapIndex(histOficial), handicapIndex(histCompleto), handicapIndex(hist18h)]);
+      continue;
+    }
+
+    if(excludePP && isPitchPutt(e.campo)){
+      continue; // excluida por completo: no cuenta en ningún histórico ni en la tabla
+    }
+
+    const hcpRef = histCompleto.length ? handicapIndex(histCompleto) : 36.0;
+    const campo = campos[e.campo];
+    if(!campo){ skipped.push(e); continue; }
+
+    if(e.tipo === '18 hoyos'){
+      const par=campo.par, si=campo.si, cr=campo.cr18, slope=campo.sl18;
+      const ch = courseHandicap(hcpRef, slope, cr, par.reduce((a,b)=>a+b,0));
+      const strokes = allocateStrokes(ch, si);
+      let ags=0;
+      for(let h=0; h<18; h++) ags += capHoleScore(e.holes[h], par[h], strokes[h]);
+      const dif = round1((113/slope)*(ags-cr-PCC));
+      histCompleto.push(dif); hist18h.push(dif);
+      table.push({fecha:e.fecha, campo:e.campo, tipo:'18 hoyos', dif, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km:campo.km});
+    } else {
+      const isIda = e.tipo.includes('Ida');
+      const idxs = isIda ? [0,1,2,3,4,5,6,7,8] : [9,10,11,12,13,14,15,16,17];
+      const par9 = idxs.map(i=>campo.par[i]);
+      const si9 = idxs.map(i=>campo.si[i]);
+      const scores9 = idxs.map(i=>e.holes[i]);
+      const cr9 = isIda ? campo.cr9i : campo.cr9v;
+      const slope9 = isIda ? campo.sl9i : campo.sl9v;
+      if(cr9==null || slope9==null){ skipped.push(e); continue; }
+      const ch9 = courseHandicap(hcpRef, slope9, cr9, par9.reduce((a,b)=>a+b,0));
+      const strokes9 = allocateStrokes(ch9, si9);
+      let ags9=0;
+      for(let i=0;i<9;i++) ags9 += capHoleScore(scores9[i], par9[i], strokes9[i]);
+      const dif9 = (113/slope9)*(ags9-cr9-PCC);
+      const expectedOther9 = hcpRef/2;
+      const dif18eq = round1(dif9+expectedOther9);
+      histCompleto.push(dif18eq);
+      table.push({fecha:e.fecha, campo:e.campo, tipo:e.tipo, dif:dif18eq, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km: campo.km!=null ? round1(campo.km/2) : null});
+    }
+    timeline.push([e.fecha, handicapIndex(histOficial), handicapIndex(histCompleto), handicapIndex(hist18h)]);
+  }
+
+  return {histOficial, histCompleto, hist18h, timeline, table, skipped};
+}
+
+/* ================= Data loading / persistence ================= */
+const SEED = JSON.parse(document.getElementById('seed-data').textContent);
+const LS_KEY = 'hcp_tracker_extra_v1';
+const IMPORT_KEY = 'hcp_tracker_imported_v1';
+
+function makeId(){
+  return 'r_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function loadExtra(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {oficiales:[], no_oficiales:[]};
+  }catch(e){ return {oficiales:[], no_oficiales:[]}; }
+}
+function saveExtra(extra){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(extra)); }catch(e){ /* noop */ }
+}
+
+function loadImported(){
+  try{
+    const raw = localStorage.getItem(IMPORT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function saveImported(data){
+  try{ localStorage.setItem(IMPORT_KEY, JSON.stringify(data)); }catch(e){ /* noop */ }
+}
+function clearImported(){
+  try{ localStorage.removeItem(IMPORT_KEY); }catch(e){ /* noop */ }
+}
+
+function getActiveData(){
+  const imported = loadImported();
+  if(imported && imported.campos) return imported;
+  return SEED;
+}
+
+function buildEvents(){
+  const data = getActiveData();
+  const extra = loadExtra();
+  const events = [];
+  for(const o of data.oficiales){
+    events.push({fecha:o.fecha, oficial:true, es18:o.es18, diferencial:o.diferencial, campo:o.campo, notas:o.notas, id:null, source:'seed'});
+  }
+  for(const o of extra.oficiales){
+    events.push({fecha:o.fecha, oficial:true, es18:o.es18, diferencial:o.diferencial, campo:o.campo, notas:o.notas, id:o.id, source:'extra'});
+  }
+  for(const n of data.no_oficiales){
+    events.push({fecha:n.fecha, oficial:false, tipo:n.tipo, campo:n.campo, holes:n.holes, id:null, source:'seed'});
+  }
+  for(const n of extra.no_oficiales){
+    events.push({fecha:n.fecha, oficial:false, tipo:n.tipo, campo:n.campo, holes:n.holes, id:n.id, source:'extra'});
+  }
+  return events;
+}
+
+/* ================= Rendering ================= */
+let chartInstance = null;
+let currentFilter = 'all';
+let lastResult = null;
+let excludePP = false;
+try{ excludePP = localStorage.getItem('hcp_exclude_pp') === '1'; }catch(e){}
+
+function fmtDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+
+function render(){
+  const errBar = document.getElementById('errorBar');
+  if(errBar) errBar.style.display = 'none';
+
+  syncImportBanner();
+  populateCampoSelect();
+
+  const events = buildEvents();
+  const result = processEvents(events, getActiveData().campos, {excludePP});
+  lastResult = result;
+
+  try{
+    const oficial = handicapIndex(result.histOficial);
+    const completo = handicapIndex(result.histCompleto);
+    const solo18 = handicapIndex(result.hist18h);
+
+    document.getElementById('statOficial').textContent = oficial ?? '—';
+    document.getElementById('statCompleto').textContent = completo ?? '—';
+    document.getElementById('statSolo18').textContent = solo18 ?? '—';
+
+    function setDelta(elId, hist){
+      const el = document.getElementById(elId);
+      if(hist.length < 2){ el.textContent = 'sin histórico previo'; el.className='delta'; return; }
+      const prev = handicapIndex(hist.slice(0,-1));
+      const cur = handicapIndex(hist);
+      const diff = round1(cur - prev);
+      if(diff === 0){ el.textContent = 'sin cambio'; el.className='delta'; return; }
+      el.textContent = (diff>0?'▲ +':'▼ ') + diff.toFixed(1) + ' vs. anterior';
+      el.className = 'delta ' + (diff>0 ? 'up' : 'down');
+    }
+    setDelta('deltaOficial', result.histOficial);
+    setDelta('deltaCompleto', result.histCompleto);
+    setDelta('deltaSolo18', result.hist18h);
+
+    document.getElementById('miniTotal').textContent = result.table.length;
+    const nOf = result.table.filter(r=>r.oficial).length;
+    document.getElementById('miniSplit').textContent = `${nOf} / ${result.table.length-nOf}`;
+    const best = result.table.reduce((m,r)=> (m===null || r.dif<m) ? r.dif : m, null);
+    document.getElementById('miniBest').textContent = best!=null ? best.toFixed(1) : '—';
+    const lastRound = result.table[result.table.length-1];
+    document.getElementById('miniLast').textContent = lastRound ? fmtDate(lastRound.fecha) : '—';
+    const totalKm = result.table.reduce((a,r)=> a + (r.km||0), 0);
+    document.getElementById('miniKm').textContent = totalKm>0 ? `${totalKm.toFixed(1)} km` : '—';
+    document.getElementById('headerSub').textContent =
+      `${result.table.length} vueltas registradas · última actualización ${lastRound?fmtDate(lastRound.fecha):'—'}` +
+      (excludePP ? ' · excluyendo Pitch & Putt (no oficial)' : '');
+  } catch(err){ console.error('stats header failed', err); showRenderError('los números principales'); }
+
+  try { renderChart(result.timeline); } catch(err){ console.error('renderChart failed', err); showRenderError('la gráfica de evolución'); }
+  try { renderTable(result.table); } catch(err){ console.error('renderTable failed', err); showRenderError('el histórico de vueltas'); }
+  try { renderCampoBreakdown(result.table); } catch(err){ console.error('renderCampoBreakdown failed', err); showRenderError('el desglose por campo'); }
+  try { renderYearBreakdown(result.table); } catch(err){ console.error('renderYearBreakdown failed', err); showRenderError('el resumen por año'); }
+  try { renderScoreBreakdown(events); } catch(err){ console.error('renderScoreBreakdown failed', err); showRenderError('el resumen por puntuación'); }
+  try { renderGoal(result.timeline); } catch(err){ console.error('renderGoal failed', err); showRenderError('el objetivo de hándicap'); }
+}
+
+function showRenderError(what){
+  const bar = document.getElementById('errorBar');
+  if(!bar) return;
+  bar.style.display = 'block';
+  bar.textContent = `Hubo un problema mostrando ${what}. Revisa la consola del navegador (F12) para más detalle.`;
+}
+
+function renderChart(timeline){
+  const ctx = document.getElementById('evoChart');
+  const labels = timeline.map(t=>fmtDate(t[0]));
+  const styleRoot = getComputedStyle(document.documentElement);
+  const cOficial = styleRoot.getPropertyValue('--oficial').trim();
+  const cCompleto = styleRoot.getPropertyValue('--completo').trim();
+  const cSolo18 = styleRoot.getPropertyValue('--solo18').trim();
+  const cText = styleRoot.getPropertyValue('--muted').trim();
+  const cGrid = styleRoot.getPropertyValue('--line-soft').trim();
+
+  const datasets = [
+    {label:'Oficial', data:timeline.map(t=>t[1]), borderColor:cOficial, backgroundColor:cOficial, pointRadius:2, borderWidth:2, tension:0.15, spanGaps:true},
+    {label:'Teórico completo', data:timeline.map(t=>t[2]), borderColor:cCompleto, backgroundColor:cCompleto, pointRadius:1.5, borderWidth:2, tension:0.15, spanGaps:true},
+    {label:'Teórico 18h', data:timeline.map(t=>t[3]), borderColor:cSolo18, backgroundColor:cSolo18, pointRadius:1.5, borderWidth:2, tension:0.15, spanGaps:true},
+  ];
+
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type:'line',
+    data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{ legend:{display:false}, tooltip:{titleFont:{family:'JetBrains Mono'}, bodyFont:{family:'JetBrains Mono'}} },
+      scales:{
+        x:{ ticks:{ color:cText, maxRotation:0, autoSkip:true, maxTicksLimit:10, font:{size:10} }, grid:{ color:cGrid } },
+        y:{ ticks:{ color:cText, font:{family:'JetBrains Mono', size:11} }, grid:{ color:cGrid } }
+      }
+    }
+  });
+}
+
+function renderTable(table){
+  const tbody = document.getElementById('roundsBody');
+  let rows = [...table].reverse();
+  if(currentFilter==='oficial') rows = rows.filter(r=>r.oficial);
+  if(currentFilter==='no-oficial') rows = rows.filter(r=>!r.oficial);
+  if(!rows.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">Sin vueltas para este filtro todavía.</td></tr>`; return; }
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${fmtDate(r.fecha)}</td>
+      <td>${r.campo}</td>
+      <td>${r.tipo}</td>
+      <td class="num">${r.dif.toFixed(1)}</td>
+      <td><span class="badge ${r.oficial?'oficial':'no-oficial'}">${r.oficial?'Oficial':'No ofic.'}</span></td>
+      <td>${r.source==='extra'
+          ? `<div class="row-actions">
+               <button data-action="edit" data-id="${r.id}" data-oficial="${r.oficial}" title="Editar">✎</button>
+               <button data-action="delete" data-id="${r.id}" data-oficial="${r.oficial}" class="danger" title="Borrar">🗑</button>
+             </div>`
+          : `<span class="from-excel-tag">Excel</span>`}
+      </td>
+    </tr>`).join('');
+}
+
+let campoScope = 'all';
+
+function renderCampoBreakdown(table){
+  const groups = {};
+  for(const r of table){
+    const club = (r.campo || '').split(' - ')[0].trim();
+    if(!club || club.toUpperCase() === 'NONE') continue; // altas iniciales sin campo real (p.ej. la de la RFEG)
+    if(!groups[club]) groups[club] = [];
+    groups[club].push(r.dif); // table ya viene en orden cronológico ascendente
+  }
+  const entries = Object.entries(groups).map(([club, allDifs])=>{
+    const difs = campoScope === 'last5' ? allDifs.slice(-5) : allDifs;
+    return {
+      club, count: allDifs.length, usedCount: difs.length,
+      avg: difs.reduce((a,b)=>a+b,0)/difs.length, best: Math.min(...difs)
+    };
+  }).sort((a,b)=> b.count - a.count);
+
+  const el = document.getElementById('campoBreakdown');
+  el.innerHTML = entries.map(e=>`
+    <div class="campo-row">
+      <div class="campo-name">${e.club}<small>${e.count} vuelta${e.count===1?'':'s'}${campoScope==='last5' ? ` · media de las últimas ${e.usedCount}` : ''}</small></div>
+      <div class="campo-stat">${e.avg.toFixed(1)}<small>mejor: ${e.best.toFixed(1)}</small></div>
+    </div>`).join('');
+}
+
+document.getElementById('campoScopeTabs').addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  campoScope = e.target.dataset.scope;
+  [...document.getElementById('campoScopeTabs').children].forEach(b=>b.classList.toggle('active', b===e.target));
+  renderCampoBreakdown(lastResult.table);
+});
+
+function holesFor(tipo){
+  return tipo.includes('18') ? 18 : 9;
+}
+
+function classifyScore(diff){
+  if(diff <= -1) return 'birdie';
+  if(diff === 0) return 'par';
+  if(diff === 1) return 'bogey';
+  if(diff === 2) return 'doble';
+  return 'mas';
+}
+
+function renderScoreBreakdown(events){
+  const years = {};
+  for(const e of events){
+    if(e.oficial) continue; // no tenemos el detalle golpe a golpe de las vueltas oficiales
+    if(excludePP && isPitchPutt(e.campo)) continue;
+    const campo = getActiveData().campos[e.campo];
+    if(!campo) continue;
+
+    let idxs;
+    if(e.tipo === '18 hoyos') idxs = Array.from({length:18}, (_,i)=>i);
+    else if(e.tipo.includes('Ida')) idxs = [0,1,2,3,4,5,6,7,8];
+    else idxs = [9,10,11,12,13,14,15,16,17];
+
+    const y = e.fecha.slice(0,4);
+    if(!years[y]) years[y] = {holes:0, birdie:0, par:0, bogey:0, doble:0, mas:0};
+
+    for(const i of idxs){
+      const score = e.holes[i];
+      if(score==null) continue;
+      const par = campo.par[i];
+      const cat = classifyScore(score-par);
+      years[y].holes++;
+      years[y][cat]++;
+    }
+  }
+
+  const sortedYears = Object.keys(years).sort();
+  const totals = {holes:0, birdie:0, par:0, bogey:0, doble:0, mas:0};
+  for(const y of sortedYears){ for(const k in totals){ totals[k]+=years[y][k]; } }
+
+  const tbody = document.getElementById('scoreBody');
+  let html = sortedYears.map(y=>`
+    <tr>
+      <td class="year-label">${y}</td>
+      <td>${years[y].holes}</td>
+      <td>${years[y].birdie}</td>
+      <td>${years[y].par}</td>
+      <td>${years[y].bogey}</td>
+      <td>${years[y].doble}</td>
+      <td>${years[y].mas}</td>
+    </tr>`).join('');
+  html += `
+    <tr class="total-row">
+      <td class="year-label">Total</td>
+      <td>${totals.holes}</td>
+      <td>${totals.birdie}</td>
+      <td>${totals.par}</td>
+      <td>${totals.bogey}</td>
+      <td>${totals.doble}</td>
+      <td>${totals.mas}</td>
+    </tr>`;
+  tbody.innerHTML = html || `<tr><td colspan="7" class="empty-msg">Sin datos golpe a golpe todavía.</td></tr>`;
+}
+
+/* ================= Objetivo de hándicap ================= */
+const GOAL_KEY = 'hcp_goal_v1';
+function loadGoal(){
+  try{ const raw = localStorage.getItem(GOAL_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+function saveGoal(goal){ try{ localStorage.setItem(GOAL_KEY, JSON.stringify(goal)); }catch(e){} }
+function clearGoal(){ try{ localStorage.removeItem(GOAL_KEY); }catch(e){} }
+
+function linreg(points){
+  const n = points.length;
+  const sx = points.reduce((a,p)=>a+p.x,0);
+  const sy = points.reduce((a,p)=>a+p.y,0);
+  const sxx = points.reduce((a,p)=>a+p.x*p.x,0);
+  const sxy = points.reduce((a,p)=>a+p.x*p.y,0);
+  const denom = n*sxx - sx*sx;
+  if(denom === 0) return {slope:0, intercept: sy/n};
+  const slope = (n*sxy - sx*sy) / denom;
+  const intercept = (sy - slope*sx) / n;
+  return {slope, intercept};
+}
+
+const GOAL_TRACK_IDX = {oficial:1, completo:2, solo18h:3};
+const GOAL_TRACK_LABEL = {oficial:'Oficial de torneo', completo:'Teórico completo', solo18h:'Teórico solo 18h'};
+
+function renderGoal(timeline){
+  const statusEl = document.getElementById('goalStatus');
+  const clearBtn = document.getElementById('btnClearGoal');
+  const goal = loadGoal();
+
+  if(!goal){
+    clearBtn.style.display = 'none';
+    statusEl.innerHTML = `<div class="goal-empty">Aún no has fijado un objetivo. Elige una vista y un valor arriba y guarda.</div>`;
+    return;
+  }
+  clearBtn.style.display = 'inline-block';
+  document.getElementById('goalTrack').value = goal.track;
+  document.getElementById('goalTarget').value = goal.target;
+
+  const idx = GOAL_TRACK_IDX[goal.track];
+  const series = timeline
+    .map(t => ({fecha: t[0], v: t[idx]}))
+    .filter(p => p.v != null);
+
+  if(series.length === 0){
+    statusEl.innerHTML = `<div class="goal-empty">Todavía no hay datos suficientes en "${GOAL_TRACK_LABEL[goal.track]}" para mostrar progreso.</div>`;
+    return;
+  }
+
+  const baseline = series[0].v;
+  const current = series[series.length-1].v;
+  const target = goal.target;
+
+  let barPct;
+  if(baseline <= target){
+    barPct = 100;
+  } else {
+    barPct = Math.max(0, Math.min(100, ((baseline - current) / (baseline - target)) * 100));
+  }
+
+  let noteHtml;
+  if(current <= target){
+    const achievedAt = series.find(p => p.v <= target);
+    noteHtml = `<div class="goal-note good">🎉 ¡Objetivo cumplido! Lo alcanzaste el ${fmtDate(achievedAt.fecha)}.</div>`;
+  } else {
+    // Tendencia con los últimos puntos disponibles (hasta 20)
+    const window = series.slice(-20);
+    if(window.length < 3){
+      noteHtml = `<div class="goal-note">Todavía no hay histórico suficiente para estimar una fecha — sigue añadiendo vueltas.</div>`;
+    } else {
+      const t0 = new Date(window[0].fecha).getTime();
+      const points = window.map(p => ({x: (new Date(p.fecha).getTime() - t0) / 86400000, y: p.v}));
+      const {slope} = linreg(points);
+      if(slope >= -0.001){
+        noteHtml = `<div class="goal-note warn">Al ritmo de tus últimas ${window.length} actualizaciones no te estás acercando al objetivo — hace falta que la tendencia empiece a bajar.</div>`;
+      } else {
+        const daysNeeded = (target - current) / slope;
+        const lastDate = new Date(series[series.length-1].fecha);
+        const projected = new Date(lastDate.getTime() + daysNeeded * 86400000);
+        const projStr = projected.toLocaleDateString('es-ES', {day:'2-digit', month:'short', year:'numeric'});
+        noteHtml = `<div class="goal-note">Al ritmo de tus últimas ${window.length} actualizaciones (${(-slope*30).toFixed(2)} de bajada al mes aprox.), alcanzarías ${target} sobre el <b>${projStr}</b>.</div>`;
+      }
+    }
+  }
+
+  statusEl.innerHTML = `
+    <div class="goal-current">
+      <span class="big num">${current.toFixed(1)}</span>
+      <span class="arrow">→</span>
+      <span class="target num">${target.toFixed(1)}</span>
+      <span class="hint" style="margin:0;">${GOAL_TRACK_LABEL[goal.track]} · partiendo de ${baseline.toFixed(1)}</span>
+    </div>
+    <div class="goal-bar-track"><div class="goal-bar-fill" style="width:${barPct}%;"></div></div>
+    ${noteHtml}
+  `;
+}
+
+document.getElementById('btnSaveGoal').addEventListener('click', ()=>{
+  const track = document.getElementById('goalTrack').value;
+  const target = parseFloat(document.getElementById('goalTarget').value);
+  if(isNaN(target)){ alert('Pon un valor de hándicap objetivo.'); return; }
+  saveGoal({track, target});
+  render();
+});
+document.getElementById('btnClearGoal').addEventListener('click', ()=>{
+  if(confirm('¿Quitar el objetivo guardado?')){ clearGoal(); render(); }
+});
+
+function renderYearBreakdown(table){
+  const years = {};
+  for(const r of table){
+    const y = r.fecha.slice(0,4);
+    if(!years[y]) years[y] = {rounds:0, holes:0, best:null, km:0};
+    years[y].rounds += 1;
+    years[y].holes += holesFor(r.tipo);
+    years[y].best = (years[y].best===null) ? r.dif : Math.min(years[y].best, r.dif);
+    if(r.km!=null) years[y].km += r.km;
+  }
+  const sortedYears = Object.keys(years).sort();
+  const totalRounds = table.length;
+  const totalHoles = sortedYears.reduce((a,y)=>a+years[y].holes,0);
+  const totalBest = table.reduce((m,r)=> (m===null||r.dif<m)?r.dif:m, null);
+  const totalKm = sortedYears.reduce((a,y)=>a+years[y].km,0);
+
+  const tbody = document.getElementById('yearBody');
+  let html = sortedYears.map(y=>`
+    <tr>
+      <td class="year-label">${y}</td>
+      <td>${years[y].rounds}</td>
+      <td>${years[y].holes}</td>
+      <td>${years[y].best.toFixed(1)}</td>
+      <td>${years[y].km.toFixed(1)} km</td>
+    </tr>`).join('');
+  html += `
+    <tr class="total-row">
+      <td class="year-label">Total</td>
+      <td>${totalRounds}</td>
+      <td>${totalHoles}</td>
+      <td>${totalBest!=null ? totalBest.toFixed(1) : '—'}</td>
+      <td>${totalKm.toFixed(1)} km</td>
+    </tr>`;
+  tbody.innerHTML = html;
+}
+
+/* ================= Modal / add-edit round ================= */
+const overlay = document.getElementById('overlay');
+const tgOficial = document.getElementById('tgOficial');
+const tgNoOficial = document.getElementById('tgNoOficial');
+const oficialFields = document.getElementById('oficialFields');
+const noOficialFields = document.getElementById('noOficialFields');
+const toggleGroupEl = document.querySelector('.toggle-group');
+let modalMode = 'oficial';
+let editingId = null;      // null = alta nueva; si no, id de la ronda que se está editando
+let editingIsOficial = null;
+
+function populateCampoSelect(){
+  const sel = document.getElementById('fCampoNo');
+  const prev = sel.value;
+  sel.innerHTML = Object.keys(getActiveData().campos).sort().map(k=>`<option value="${k}">${k}</option>`).join('');
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value = prev;
+}
+
+function renderHolesGrid(prefillHoles){
+  const tipo = document.getElementById('fTipoNo').value;
+  const grid = document.getElementById('holesGrid');
+  const label = document.getElementById('holesLabel');
+  let holeNums = [];
+  if(tipo === '18 hoyos'){ holeNums = Array.from({length:18},(_,i)=>i+1); label.textContent='Golpes por hoyo (1-18)'; }
+  else if(tipo.includes('Ida')){ holeNums = Array.from({length:9},(_,i)=>i+1); label.textContent='Golpes por hoyo (1-9)'; }
+  else { holeNums = Array.from({length:9},(_,i)=>i+10); label.textContent='Golpes por hoyo (10-18)'; }
+  grid.style.gridTemplateColumns = `repeat(${Math.min(holeNums.length,9)},1fr)`;
+  grid.innerHTML = holeNums.map(n=>{
+    const v = (prefillHoles && prefillHoles[n-1]!=null) ? prefillHoles[n-1] : '';
+    return `<input type="number" min="1" max="15" data-hole="${n}" placeholder="${n}" value="${v}">`;
+  }).join('');
+  grid.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', updateTotalHint));
+  updateTotalHint();
+}
+function updateTotalHint(){
+  const grid = document.getElementById('holesGrid');
+  const vals = [...grid.querySelectorAll('input')].map(i=>parseInt(i.value,10)).filter(v=>!isNaN(v));
+  const total = vals.reduce((a,b)=>a+b,0);
+  document.getElementById('totalHint').textContent = vals.length ? `Total introducido: ${total} golpes (${vals.length} hoyos)` : '';
+}
+
+function setToggleMode(mode){
+  modalMode = mode;
+  tgOficial.classList.toggle('active', mode==='oficial');
+  tgNoOficial.classList.toggle('active', mode==='no-oficial');
+  oficialFields.style.display = mode==='oficial' ? 'block' : 'none';
+  noOficialFields.style.display = mode==='no-oficial' ? 'block' : 'none';
+}
+
+function openModal(){
+  editingId = null; editingIsOficial = null;
+  document.getElementById('modalTitle').textContent = 'Nueva ronda';
+  document.getElementById('modalSub').textContent = 'Se guarda en este navegador y se suma al cálculo al momento.';
+  document.getElementById('saveBtn').textContent = 'Guardar ronda';
+  toggleGroupEl.style.opacity = '1'; toggleGroupEl.style.pointerEvents = 'auto';
+  document.getElementById('fFecha').valueAsDate = new Date();
+  document.getElementById('fCampoOficial').value = '';
+  document.getElementById('fDifOficial').value = '';
+  document.getElementById('fNotasOficial').value = '';
+  setToggleMode('oficial');
+  overlay.classList.add('open');
+}
+
+function openModalForEdit(id, isOficial){
+  const extra = loadExtra();
+  const list = isOficial ? extra.oficiales : extra.no_oficiales;
+  const rec = list.find(r => r.id === id);
+  if(!rec){ alert('No se ha encontrado esa ronda (puede que ya no exista).'); return; }
+
+  editingId = id; editingIsOficial = isOficial;
+  document.getElementById('modalTitle').textContent = 'Editar ronda';
+  document.getElementById('modalSub').textContent = 'Estás editando una ronda que añadiste desde esta app.';
+  document.getElementById('saveBtn').textContent = 'Guardar cambios';
+  toggleGroupEl.style.opacity = '.45'; toggleGroupEl.style.pointerEvents = 'none'; // no se cambia el tipo al editar
+
+  document.getElementById('fFecha').value = rec.fecha;
+
+  if(isOficial){
+    setToggleMode('oficial');
+    document.getElementById('fCampoOficial').value = rec.campo || '';
+    document.getElementById('fTipoOficial').value = rec.es18 ? '18 hoyos' : '9 hoyos';
+    document.getElementById('fDifOficial').value = rec.diferencial;
+    document.getElementById('fNotasOficial').value = rec.notas || '';
+  } else {
+    setToggleMode('no-oficial');
+    populateCampoSelect();
+    document.getElementById('fCampoNo').value = rec.campo;
+    document.getElementById('fTipoNo').value = rec.tipo;
+    renderHolesGrid(rec.holes);
+  }
+
+  overlay.classList.add('open');
+}
+
+function closeModal(){ overlay.classList.remove('open'); }
+
+function deleteExtraRound(id, isOficial){
+  if(!confirm('¿Seguro que quieres borrar esta ronda? No se puede deshacer.')) return;
+  const extra = loadExtra();
+  if(isOficial) extra.oficiales = extra.oficiales.filter(r => r.id !== id);
+  else extra.no_oficiales = extra.no_oficiales.filter(r => r.id !== id);
+  saveExtra(extra);
+  render();
+}
+
+document.getElementById('btnAdd').addEventListener('click', openModal);
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+
+document.getElementById('roundsBody').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const isOficial = btn.dataset.oficial === 'true';
+  if(btn.dataset.action === 'edit') openModalForEdit(id, isOficial);
+  if(btn.dataset.action === 'delete') deleteExtraRound(id, isOficial);
+});
+
+tgOficial.addEventListener('click', ()=>{ if(!editingId) setToggleMode('oficial'); });
+tgNoOficial.addEventListener('click', ()=>{ if(!editingId){ setToggleMode('no-oficial'); renderHolesGrid(); } });
+document.getElementById('fTipoNo').addEventListener('change', ()=> renderHolesGrid());
+
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const fecha = document.getElementById('fFecha').value;
+  if(!fecha){ alert('Falta la fecha.'); return; }
+  const extra = loadExtra();
+
+  if(modalMode==='oficial'){
+    const campo = document.getElementById('fCampoOficial').value.trim() || 'Sin especificar';
+    const tipo = document.getElementById('fTipoOficial').value;
+    const dif = parseFloat(document.getElementById('fDifOficial').value);
+    if(isNaN(dif)){ alert('Falta el diferencial.'); return; }
+    const rec = {fecha, campo, es18: tipo==='18 hoyos', diferencial:dif, notas:document.getElementById('fNotasOficial').value.trim()};
+    if(editingId){
+      const idx = extra.oficiales.findIndex(r=>r.id===editingId);
+      if(idx>=0) extra.oficiales[idx] = {...rec, id: editingId};
+    } else {
+      extra.oficiales.push({...rec, id: makeId()});
+    }
+  } else {
+    const campo = document.getElementById('fCampoNo').value;
+    const tipo = document.getElementById('fTipoNo').value;
+    const grid = document.getElementById('holesGrid');
+    const holes = new Array(18).fill(null);
+    grid.querySelectorAll('input').forEach(inp=>{
+      const h = parseInt(inp.dataset.hole,10);
+      const v = parseInt(inp.value,10);
+      if(!isNaN(v)) holes[h-1] = v;
+    });
+    const expected = tipo==='18 hoyos' ? 18 : 9;
+    const filled = holes.filter(v=>v!=null).length;
+    if(filled < expected){ alert(`Faltan golpes: has introducido ${filled} de ${expected} hoyos.`); return; }
+    const rec = {fecha, campo, tipo, holes};
+    if(editingId){
+      const idx = extra.no_oficiales.findIndex(r=>r.id===editingId);
+      if(idx>=0) extra.no_oficiales[idx] = {...rec, id: editingId};
+    } else {
+      extra.no_oficiales.push({...rec, id: makeId()});
+    }
+  }
+
+  saveExtra(extra);
+  closeModal();
+  render();
+});
+
+document.getElementById('btnResetExtra').addEventListener('click', ()=>{
+  if(confirm('¿Borrar todas las rondas que has añadido desde esta app? Las cargadas desde el Excel original no se ven afectadas.')){
+    saveExtra({oficiales:[], no_oficiales:[]});
+    render();
+  }
+});
+
+const btnTogglePP = document.getElementById('btnTogglePP');
+function syncTogglePPButton(){
+  btnTogglePP.classList.toggle('active', excludePP);
+  btnTogglePP.textContent = excludePP ? '⛳ Pitch & Putt excluido' : '⛳ Excluir Pitch & Putt';
+}
+btnTogglePP.addEventListener('click', ()=>{
+  excludePP = !excludePP;
+  try{ localStorage.setItem('hcp_exclude_pp', excludePP ? '1':'0'); }catch(e){}
+  syncTogglePPButton();
+  render();
+});
+syncTogglePPButton();
+
+document.getElementById('filterTabs').addEventListener('click', (e)=>{
+  if(e.target.tagName!=='BUTTON') return;
+  currentFilter = e.target.dataset.f;
+  [...document.getElementById('filterTabs').children].forEach(b=>b.classList.toggle('active', b===e.target));
+  renderTable(lastResult.table);
+});
+
+/* ================= Import Excel ================= */
+function excelCellToISO(v){
+  if(v==null || v==='') return null;
+  if(typeof v === 'string'){
+    const m = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+    const d = new Date(v);
+    if(!isNaN(d)) return d.toISOString().slice(0,10);
+    return null;
+  }
+  if(typeof v === 'number'){
+    const epoch = Date.UTC(1899, 11, 30);
+    const d = new Date(epoch + v * 86400000);
+    return d.toISOString().slice(0,10);
+  }
+  return null;
+}
+
+function sheetToRows(wb, name){
+  const ws = wb.Sheets[name];
+  if(!ws) return null;
+  return XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+}
+
+function parseWorkbook(wb){
+  const campos = {};
+  const rowsCampos = sheetToRows(wb, 'Campos_Barras');
+  if(!rowsCampos) throw new Error('No se encuentra la pestaña "Campos_Barras" en el Excel.');
+  const PAR_START = 11, SI_START = 29; // índices 0-based (columnas L y AD)
+  for(let i=3; i<rowsCampos.length; i++){
+    const row = rowsCampos[i];
+    if(!row || !row[0]) continue;
+    const club = row[0], barra = row[1];
+    const key = `${club} - ${barra}`;
+    const par = row.slice(PAR_START, PAR_START+18);
+    const si = row.slice(SI_START, SI_START+18);
+    if(par.some(v=>v==null) || si.some(v=>v==null)) continue; // aún pendiente de completar en el Excel
+    campos[key] = {
+      cr18: row[3], sl18: row[4], cr9i: row[5], sl9i: row[6], cr9v: row[7], sl9v: row[8],
+      par: par.map(Number), si: si.map(Number), km: row[47]!=null ? Number(row[47]) : null,
+    };
+  }
+
+  const oficiales = [];
+  const rowsOf = sheetToRows(wb, 'Rondas_Oficiales');
+  if(rowsOf){
+    for(let i=3; i<rowsOf.length; i++){
+      const row = rowsOf[i];
+      if(!row || !row[0]) continue;
+      const fecha = excelCellToISO(row[0]);
+      const dif = row[10];
+      if(!fecha || dif==null) continue;
+      oficiales.push({fecha, campo: row[1], es18: row[3]==='18 hoyos', diferencial: Number(dif), notas: row[12] || ''});
+    }
+  }
+
+  const no_oficiales = [];
+  const rowsNo = sheetToRows(wb, 'Rondas_No_Oficiales');
+  if(rowsNo){
+    for(let i=3; i<rowsNo.length; i++){
+      const row = rowsNo[i];
+      if(!row || !row[0] || !row[1]) continue;
+      const fecha = excelCellToISO(row[0]);
+      if(!fecha) continue;
+      const holes = row.slice(3, 21).map(v => v==null ? null : Number(v));
+      no_oficiales.push({fecha, campo: row[1], tipo: row[2], holes});
+    }
+  }
+
+  if(Object.keys(campos).length === 0) throw new Error('No se ha leído ningún campo con par/stroke-index completos.');
+  return {campos, oficiales, no_oficiales};
+}
+
+document.getElementById('btnImportExcel').addEventListener('click', ()=>{
+  document.getElementById('fileImportExcel').click();
+});
+document.getElementById('fileImportExcel').addEventListener('change', (ev)=>{
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const parsed = parseWorkbook(wb);
+      saveImported({...parsed, importedAt: new Date().toISOString(), fileName: file.name});
+      render();
+    }catch(err){
+      console.error('Error importando Excel', err);
+      alert('No se ha podido leer el Excel: ' + err.message + '\n\nRevisa que sea el mismo formato de la plantilla, sin cambiar el orden de las columnas.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  ev.target.value = ''; // permite volver a elegir el mismo archivo si hace falta
+});
+document.getElementById('btnClearImport').addEventListener('click', ()=>{
+  if(confirm('¿Volver a los datos originales cargados en la app y descartar el Excel importado?')){
+    clearImported();
+    render();
+  }
+});
+
+function syncImportBanner(){
+  const imported = loadImported();
+  const banner = document.getElementById('importBanner');
+  const clearBtn = document.getElementById('btnClearImport');
+  if(imported){
+    const when = imported.importedAt ? new Date(imported.importedAt).toLocaleString('es-ES') : '';
+    banner.style.display = 'block';
+    banner.textContent = `Usando datos importados de "${imported.fileName || 'Excel'}" (cargado ${when}). Las rondas que añadas desde el botón "+ Nueva ronda" se suman encima de este archivo.`;
+    clearBtn.style.display = 'inline-block';
+  } else {
+    banner.style.display = 'none';
+    clearBtn.style.display = 'none';
+  }
+}
+
+populateCampoSelect();
+renderHolesGrid();
+syncImportBanner();
+render();
+
+</script>
+</body>
+</html>
