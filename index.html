@@ -40,7 +40,7 @@
   }
 
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;overflow-x:hidden;max-width:100%;}
   body{
     background:var(--bg);
     color:var(--text);
@@ -105,8 +105,21 @@
   .goal-note.good{color:var(--good);}
   .goal-note.warn{color:var(--bad);}
   .goal-empty{color:var(--muted-2);font-size:12.5px;}
-  .header-actions{display:flex;gap:8px;}
+  .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pp-toggle-row{display:flex;justify-content:flex-end;margin-bottom:12px;}
+  .dropdown-wrap{position:relative;display:inline-block;}
+  .dropdown-menu{
+    display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:30;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    min-width:180px;box-shadow:0 6px 18px rgba(0,0,0,.25);overflow:hidden;
+  }
+  .dropdown-menu.open{display:block;}
+  .dropdown-menu button{
+    display:block;width:100%;text-align:left;background:none;border:none;
+    color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px;cursor:pointer;
+  }
+  .dropdown-menu button:hover{background:var(--panel-2);}
+  .dropdown-menu button + button{border-top:1px solid var(--line-soft);}
 
   /* ---------- Stat row ---------- */
   .stats{
@@ -156,37 +169,46 @@
   .chart-wrap{height:340px;position:relative;}
 
   /* ---------- Two column ---------- */
-  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;}
+  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;min-width:0;}
+  .grid2 > .panel{min-width:0;}
   @media (max-width:920px){ .grid2{grid-template-columns:1fr;} .stats{grid-template-columns:1fr 1fr;} .stats .mini-stats{grid-column:span 2;} }
   @media (max-width:600px){ .stats{grid-template-columns:1fr;} .stats .mini-stats{grid-column:span 1;} }
 
-  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;}
   thead th{
     text-align:left;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
-    padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700;
+    padding:0 6px 8px;border-bottom:1px solid var(--line);font-weight:700;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  tbody td{padding:8px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);}
+  tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   tbody tr:hover{background:var(--panel-2);}
   tbody td.num, thead th.num{font-family:'JetBrains Mono',monospace;text-align:right;}
+  thead th:nth-child(1), tbody td:nth-child(1){width:15%;}
+  thead th:nth-child(2), tbody td:nth-child(2){width:37%;}
+  thead th:nth-child(3), tbody td:nth-child(3){width:23%;}
+  thead th:nth-child(4), tbody td:nth-child(4){width:10%;}
+  thead th:nth-child(5), tbody td:nth-child(5){width:8%;}
+  thead th:nth-child(6), tbody td:nth-child(6){width:7%;overflow:visible;}
   .badge{
     display:inline-block;padding:2px 7px;border-radius:2px;font-size:10.5px;font-weight:700;
     letter-spacing:.2px;
   }
   .badge.oficial{background:rgba(201,162,75,.16);color:var(--oficial);}
   .badge.no-oficial{background:rgba(95,167,119,.14);color:var(--completo);}
-  .table-scroll{max-height:520px;overflow-y:auto;}
-  .filter-tabs{display:flex;gap:6px;}
+  .table-scroll{max-height:520px;overflow-y:auto;overflow-x:hidden;}
+  .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
   .filter-tabs button{
     background:transparent;border:1px solid var(--line);color:var(--muted);
     font-family:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:2px;cursor:pointer;
   }
   .filter-tabs button.active{background:var(--completo);color:#0B1210;border-color:var(--completo);}
 
-  .campo-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);}
+  .campo-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);}
   .campo-row:last-child{border-bottom:none;}
-  .campo-name{font-size:12.5px;}
+  .campo-name{font-size:12.5px;min-width:0;overflow-wrap:break-word;}
   .campo-name small{display:block;color:var(--muted-2);font-size:10.5px;margin-top:2px;}
-  .campo-stat{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
+  .campo-stat{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0;white-space:nowrap;}
   .campo-stat small{display:block;color:var(--muted-2);font-family:'Manrope',sans-serif;font-size:10px;font-weight:500;}
 
   /* ---------- Modal ---------- */
@@ -241,8 +263,13 @@
     </div>
     <div class="header-actions">
       <input type="file" id="fileImportExcel" accept=".xlsx" style="display:none;">
-      <button class="btn secondary" id="btnImportExcel" title="Lee un Excel con el mismo formato de la plantilla y sustituye los datos de base">📥 Importar Excel</button>
-      <button class="btn secondary" id="btnExportExcel" title="Descarga un Excel con el mismo formato, incluyendo las rondas que hayas añadido desde esta app (copia de seguridad)">💾 Exportar Excel</button>
+      <div class="dropdown-wrap" id="bbddDropdownWrap">
+        <button class="btn secondary" id="btnBbddMenu">🗄️ BBDD ▾</button>
+        <div class="dropdown-menu" id="bbddDropdownMenu">
+          <button id="menuImportExcel">📥 Importar Excel</button>
+          <button id="menuExportExcel">💾 Exportar Excel</button>
+        </div>
+      </div>
       <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
       <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar añadidas</button>
       <button class="btn secondary" id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar con GitHub</button>
@@ -756,9 +783,9 @@ function renderTable(table){
   if(!rows.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">Sin vueltas para este filtro todavía.</td></tr>`; return; }
   tbody.innerHTML = rows.map(r=>`
     <tr>
-      <td>${fmtDate(r.fecha)}</td>
-      <td>${r.campo}</td>
-      <td>${r.tipo}</td>
+      <td title="${fmtDate(r.fecha)}">${fmtDate(r.fecha)}</td>
+      <td title="${r.campo}">${r.campo}</td>
+      <td title="${r.tipo}">${r.tipo}</td>
       <td class="num">${r.dif.toFixed(1)}</td>
       <td><span class="badge ${r.oficial?'oficial':'no-oficial'}">${r.oficial?'Oficial':'No ofic.'}</span></td>
       <td>${r.source==='extra'
@@ -766,7 +793,7 @@ function renderTable(table){
                <button data-action="edit" data-id="${r.id}" data-oficial="${r.oficial}" title="Editar">✎</button>
                <button data-action="delete" data-id="${r.id}" data-oficial="${r.oficial}" class="danger" title="Borrar">🗑</button>
              </div>`
-          : `<span class="from-excel-tag">Excel</span>`}
+          : ``}
       </td>
     </tr>`).join('');
 }
@@ -1280,7 +1307,7 @@ function buildExportWorkbook(){
   return wb;
 }
 
-document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
+document.getElementById('menuExportExcel').addEventListener('click', async ()=>{
   try{
     const wb = buildExportWorkbook();
     const arrayBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
@@ -1436,6 +1463,20 @@ document.getElementById('ghForget').addEventListener('click', ()=>{
 });
 document.getElementById('btnGithubSync').addEventListener('click', performGithubSync);
 
+/* ================= Desplegable BBDD ================= */
+const bbddMenu = document.getElementById('bbddDropdownMenu');
+document.getElementById('btnBbddMenu').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  bbddMenu.classList.toggle('open');
+});
+document.addEventListener('click', (e)=>{
+  if(!document.getElementById('bbddDropdownWrap').contains(e.target)){
+    bbddMenu.classList.remove('open');
+  }
+});
+document.getElementById('menuImportExcel').addEventListener('click', ()=>{ bbddMenu.classList.remove('open'); });
+document.getElementById('menuExportExcel').addEventListener('click', ()=>{ bbddMenu.classList.remove('open'); });
+
 /* ================= Import Excel ================= */
 function excelCellToISO(v){
   if(v==null || v==='') return null;
@@ -1509,7 +1550,7 @@ function parseWorkbook(wb){
   return {campos, oficiales, no_oficiales};
 }
 
-document.getElementById('btnImportExcel').addEventListener('click', ()=>{
+document.getElementById('menuImportExcel').addEventListener('click', ()=>{
   document.getElementById('fileImportExcel').click();
 });
 document.getElementById('fileImportExcel').addEventListener('change', (ev)=>{
