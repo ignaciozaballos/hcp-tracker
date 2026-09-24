@@ -174,29 +174,22 @@
   @media (max-width:920px){ .grid2{grid-template-columns:1fr;} .stats{grid-template-columns:1fr 1fr;} .stats .mini-stats{grid-column:span 2;} }
   @media (max-width:600px){ .stats{grid-template-columns:1fr;} .stats .mini-stats{grid-column:span 1;} }
 
-  table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
   thead th{
     text-align:left;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
-    padding:0 6px 8px;border-bottom:1px solid var(--line);font-weight:700;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap;
   }
-  tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);color:var(--text);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  tbody td{padding:8px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);white-space:nowrap;}
   tbody tr:hover{background:var(--panel-2);}
   tbody td.num, thead th.num{font-family:'JetBrains Mono',monospace;text-align:right;}
-  thead th:nth-child(1), tbody td:nth-child(1){width:15%;}
-  thead th:nth-child(2), tbody td:nth-child(2){width:37%;}
-  thead th:nth-child(3), tbody td:nth-child(3){width:23%;}
-  thead th:nth-child(4), tbody td:nth-child(4){width:10%;}
-  thead th:nth-child(5), tbody td:nth-child(5){width:8%;}
-  thead th:nth-child(6), tbody td:nth-child(6){width:7%;overflow:visible;}
   .badge{
     display:inline-block;padding:2px 7px;border-radius:2px;font-size:10.5px;font-weight:700;
     letter-spacing:.2px;
   }
   .badge.oficial{background:rgba(201,162,75,.16);color:var(--oficial);}
   .badge.no-oficial{background:rgba(95,167,119,.14);color:var(--completo);}
-  .table-scroll{max-height:520px;overflow-y:auto;overflow-x:hidden;}
+  .table-x-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;max-width:100%;}
+  .table-scroll{max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
   .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
   .filter-tabs button{
     background:transparent;border:1px solid var(--line);color:var(--muted);
@@ -271,8 +264,8 @@
         </div>
       </div>
       <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
-      <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar añadidas</button>
-      <button class="btn secondary" id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar con GitHub</button>
+      <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar rondas</button>
+      <button class="btn secondary" id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar Nube</button>
       <button class="btn secondary" id="btnGithubConfig" title="Configurar el token de acceso de GitHub" style="padding:10px 12px;">⚙️</button>
       <button class="btn" id="btnAdd">+ Nueva ronda</button>
     </div>
@@ -313,23 +306,27 @@
 
   <div class="panel" id="yearPanel">
     <h2><span>RESUMEN POR AÑO</span></h2>
-    <table class="year-table">
-      <thead>
-        <tr><th>Año</th><th>Rondas</th><th>Hoyos jugados</th><th>Mejor diferencial</th><th>Distancia</th></tr>
-      </thead>
-      <tbody id="yearBody"></tbody>
-    </table>
+    <div class="table-x-scroll">
+      <table class="year-table">
+        <thead>
+          <tr><th>Año</th><th>Rondas</th><th>Hoyos jugados</th><th>Mejor diferencial</th><th>Distancia</th></tr>
+        </thead>
+        <tbody id="yearBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="panel" id="scorePanel">
     <h2><span>RESUMEN POR PUNTUACIÓN</span></h2>
     <div class="hint" style="margin-bottom:10px;">Solo vueltas no oficiales (son las únicas de las que tenemos el detalle golpe a golpe).</div>
-    <table class="year-table">
-      <thead>
-        <tr><th>Año</th><th>Hoyos</th><th>Birdie</th><th>Par</th><th>Bogey</th><th>Doble bogey</th><th>Más</th></tr>
-      </thead>
-      <tbody id="scoreBody"></tbody>
-    </table>
+    <div class="table-x-scroll">
+      <table class="year-table">
+        <thead>
+          <tr><th>Año</th><th>Hoyos</th><th>Birdie</th><th>Par</th><th>Bogey</th><th>Doble bogey</th><th>Más</th></tr>
+        </thead>
+        <tbody id="scoreBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="panel" id="goalPanel">
