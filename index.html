@@ -133,8 +133,15 @@
   }
   .mini-card .mini-label{font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:6px;}
   .mini-card .mini-value{font-size:16px;font-weight:800;color:var(--text);}
-  @media (max-width:760px){ .stats{grid-template-columns:1fr;} .mini-stats{grid-template-columns:1fr 1fr;} }
+  @media (max-width:760px){ .mini-stats{grid-template-columns:1fr 1fr;} }
   @media (max-width:420px){ .mini-stats{grid-template-columns:1fr 1fr;} }
+  @media (max-width:520px){
+    .stats{gap:7px;}
+    .stat-card{padding:16px 8px 18px;text-align:center;}
+    .stat-card .label{font-size:10px;margin-bottom:12px;}
+    .stat-card .value-pill{font-size:20px;padding:6px 8px;display:block;}
+    .stat-card .delta{font-size:10px;margin-top:12px;}
+  }
 
   /* ---------- Panels ---------- */
   .panel{
