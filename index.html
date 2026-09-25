@@ -171,7 +171,13 @@
   /* ---------- Two column ---------- */
   .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;min-width:0;}
   .grid2 > .panel{min-width:0;}
-  @media (max-width:920px){ .grid2{grid-template-columns:1fr;} .stats{grid-template-columns:1fr 1fr;} .stats .mini-stats{grid-column:span 2;} }
+  @media (max-width:920px){
+    .grid2{grid-template-columns:1fr;}
+    .stats{grid-template-columns:1fr 1fr;}
+    .stats .mini-stats{grid-column:span 2;}
+    #panelPorCampo{order:1;}
+    #panelHistorico{order:2;}
+  }
   @media (max-width:600px){ .stats{grid-template-columns:1fr;} .stats .mini-stats{grid-column:span 1;} }
 
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
@@ -357,7 +363,7 @@
   </div>
 
   <div class="grid2">
-    <div class="panel">
+    <div class="panel" id="panelHistorico">
       <h2>
         <span>HISTÓRICO DE VUELTAS</span>
         <span class="filter-tabs" id="filterTabs">
@@ -378,7 +384,7 @@
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="panelPorCampo">
       <h2>
         <span>POR CAMPO</span>
         <span class="filter-tabs" id="campoScopeTabs">
