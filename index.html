@@ -3,40 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HCP · Panel de hándicap</title>
+<title>HCP Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg: #0B1210;
-    --panel: #101815;
-    --panel-2: #141F1A;
-    --line: #24342C;
-    --line-soft: #1B2721;
-    --text: #E7EDE8;
-    --muted: #8CA097;
-    --muted-2: #5F726A;
-    --oficial: #C9A24B;
-    --completo: #5FA777;
-    --solo18: #5B90A6;
-    --bad: #C1604A;
-    --good: #6FBE8C;
-    --radius: 3px;
-    color-scheme: dark;
+    --bg: #EEF4F0;
+    --panel: #FFFFFF;
+    --panel-2: #F5F9F6;
+    --line: #E3EAE4;
+    --line-soft: #EDF2EE;
+    --text: #16241C;
+    --muted: #64766B;
+    --muted-2: #97A79D;
+    --oficial: #2F6FED;
+    --oficial-2: #1B4FCB;
+    --completo: #16A34A;
+    --completo-2: #0D7D39;
+    --solo18: #0E9E9D;
+    --solo18-2: #0B7A79;
+    --bad: #E0483C;
+    --good: #16A34A;
+    --radius: 20px;
+    --radius-sm: 12px;
+    color-scheme: light;
   }
-  :root:not([data-theme="light"]) { }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]){
-      --bg:#F3F5F2; --panel:#FFFFFF; --panel-2:#F7F9F6; --line:#DCE3DD; --line-soft:#E7ECE6;
-      --text:#141B16; --muted:#5C6B62; --muted-2:#8A968E;
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1512; --panel:#161F19; --panel-2:#1C2721; --line:#2A362F; --line-soft:#212C26;
+      --text:#EDF2EE; --muted:#94A69B; --muted-2:#647568;
     }
   }
-  :root[data-theme="light"]{
-    --bg:#F3F5F2; --panel:#FFFFFF; --panel-2:#F7F9F6; --line:#DCE3DD; --line-soft:#E7ECE6;
-    --text:#141B16; --muted:#5C6B62; --muted-2:#8A968E;
+  :root[data-theme="dark"]{
+    --bg:#0E1512; --panel:#161F19; --panel-2:#1C2721; --line:#2A362F; --line-soft:#212C26;
+    --text:#EDF2EE; --muted:#94A69B; --muted-2:#647568;
   }
 
   *{box-sizing:border-box;}
@@ -48,295 +51,301 @@
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
   }
-  .num{font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric: tabular-nums;}
+  .num{font-variant-numeric: tabular-nums;}
+  a{color:inherit;}
 
-  .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 60px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 70px;}
 
   /* ---------- Header ---------- */
-  header{
-    display:flex;justify-content:space-between;align-items:flex-end;
-    padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line);
-    gap:16px;flex-wrap:wrap;
+  header.hero{
+    background:linear-gradient(135deg, var(--completo) 0%, var(--completo-2) 100%);
+    border-radius:var(--radius);
+    padding:22px 22px 20px;
+    color:#fff;
+    margin-bottom:14px;
+    box-shadow:0 10px 30px rgba(20,164,77,.25);
   }
-  header .id{display:flex;flex-direction:column;gap:2px;}
-  header h1{
-    margin:0;font-size:20px;font-weight:800;letter-spacing:0.2px;
-  }
-  header h1 span{color:var(--muted-2);font-weight:600;}
-  header .sub{color:var(--muted);font-size:12.5px;}
+  header.hero h1{margin:0 0 4px;font-size:22px;font-weight:800;letter-spacing:.2px;}
+  header.hero .sub{font-size:12.5px;opacity:.85;font-weight:600;}
+
+  .action-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
   .btn{
-    background:var(--completo);color:#0B1210;border:none;border-radius:var(--radius);
-    padding:10px 16px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
-    transition:filter .12s ease;
+    background:var(--completo);color:#fff;border:none;border-radius:999px;
+    padding:11px 18px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
+    transition:filter .12s ease, transform .1s ease;
+    box-shadow:0 4px 10px rgba(22,163,74,.25);
   }
-  .btn:hover{filter:brightness(1.08);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(.97);}
   .btn.secondary{
-    background:transparent;color:var(--text);border:1px solid var(--line);
+    background:var(--panel);color:var(--text);border:1px solid var(--line);box-shadow:none;
   }
   .btn.secondary:hover{border-color:var(--muted-2);}
-  .btn.toggle-pp.active{background:var(--bad);color:#1a0d09;border-color:var(--bad);font-weight:700;}
+  .btn.icon{padding:11px 13px;}
+  .btn.toggle-pp.active{background:var(--bad);color:#fff;box-shadow:0 4px 10px rgba(224,72,60,.25);}
   .row-actions{display:flex;gap:6px;}
   .row-actions button{
-    background:transparent;border:1px solid var(--line);color:var(--muted);
-    padding:3px 7px;border-radius:2px;font-size:12px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    padding:5px 8px;border-radius:8px;font-size:12px;cursor:pointer;
   }
   .row-actions button:hover{border-color:var(--muted-2);color:var(--text);}
   .row-actions button.danger:hover{border-color:var(--bad);color:var(--bad);}
-  .from-excel-tag{font-size:10.5px;color:var(--muted-2);font-style:italic;}
   .import-banner{
-    background:rgba(95,167,119,.12);border:1px solid var(--completo);color:var(--completo);
-    padding:7px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;display:none;
+    background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.35);color:var(--completo-2);
+    padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:12px;display:none;font-weight:600;
   }
-
-  /* ---------- Goal panel ---------- */
-  .goal-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-  .goal-form select, .goal-form input{
-    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
-    padding:8px 9px;border-radius:2px;font-family:inherit;font-size:13px;
-  }
-  .goal-form input{width:110px;}
-  .goal-current{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
-  .goal-current .big{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;}
-  .goal-current .arrow{color:var(--muted-2);font-size:18px;}
-  .goal-current .target{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--completo);font-weight:700;}
-  .goal-bar-track{height:10px;border-radius:5px;background:var(--line-soft);overflow:hidden;margin-bottom:10px;position:relative;}
-  .goal-bar-fill{height:100%;background:var(--completo);border-radius:5px;transition:width .3s ease;}
-  .goal-note{font-size:12.5px;color:var(--muted);line-height:1.5;}
-  .goal-note.good{color:var(--good);}
-  .goal-note.warn{color:var(--bad);}
-  .goal-empty{color:var(--muted-2);font-size:12.5px;}
-  .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .pp-toggle-row{display:flex;justify-content:flex-end;margin-bottom:12px;}
   .dropdown-wrap{position:relative;display:inline-block;}
   .dropdown-menu{
-    display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:30;
-    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    min-width:180px;box-shadow:0 6px 18px rgba(0,0,0,.25);overflow:hidden;
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:30;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    min-width:190px;box-shadow:0 14px 34px rgba(20,30,24,.16);overflow:hidden;
   }
   .dropdown-menu.open{display:block;}
   .dropdown-menu button{
     display:block;width:100%;text-align:left;background:none;border:none;
-    color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px;cursor:pointer;
+    color:var(--text);font-family:inherit;font-size:13.5px;padding:12px 14px;cursor:pointer;font-weight:600;
   }
   .dropdown-menu button:hover{background:var(--panel-2);}
   .dropdown-menu button + button{border-top:1px solid var(--line-soft);}
 
-  /* ---------- Stat row ---------- */
-  .stats{
-    display:grid;grid-template-columns:repeat(3,1fr) 1.1fr;gap:1px;
-    background:var(--line);border:1px solid var(--line);border-radius:var(--radius);
-    overflow:hidden;margin-bottom:16px;
+  /* ---------- Stat cards (badge style) ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}
+  .stat-card{
+    border-radius:var(--radius);padding:18px 16px;color:#fff;position:relative;overflow:hidden;
+    box-shadow:0 10px 24px rgba(20,30,24,.14);
   }
-  .stat-card{background:var(--panel);padding:16px 18px;}
-  .stat-card .label{
-    font-size:11px;letter-spacing:.3px;color:var(--muted);margin-bottom:10px;
-    display:flex;justify-content:space-between;align-items:center;
+  .stat-card.c-oficial{background:linear-gradient(135deg, var(--oficial) 0%, var(--oficial-2) 100%);}
+  .stat-card.c-completo{background:linear-gradient(135deg, var(--completo) 0%, var(--completo-2) 100%);}
+  .stat-card.c-solo18{background:linear-gradient(135deg, var(--solo18) 0%, var(--solo18-2) 100%);}
+  .stat-card .label{font-size:11.5px;font-weight:700;opacity:.9;margin-bottom:10px;letter-spacing:.2px;}
+  .stat-card .value-pill{
+    display:inline-block;background:rgba(0,0,0,.18);border-radius:14px;padding:6px 14px;
+    font-size:26px;font-weight:800;line-height:1.1;
   }
-  .stat-card .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
-  .stat-card .value{font-size:38px;font-weight:700;line-height:1;}
-  .stat-card .delta{font-size:12.5px;margin-top:8px;color:var(--muted);}
-  .stat-card .delta.up{color:var(--bad);}
-  .stat-card .delta.down{color:var(--good);}
-  .mini-stats{display:flex;flex-direction:column;gap:10px;padding:16px 18px;background:var(--panel);}
-  .mini-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);border-bottom:1px dashed var(--line-soft);padding-bottom:8px;}
-  .mini-row:last-child{border-bottom:none;padding-bottom:0;}
-  .mini-row b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
-
-  /* ---------- Year breakdown ---------- */
-  .year-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  .year-table th{
-    text-align:right;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
-    padding:0 10px 8px;border-bottom:1px solid var(--line);font-weight:700;
+  .stat-card .delta{font-size:11.5px;margin-top:10px;opacity:.9;font-weight:600;}
+  .mini-stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;
   }
-  .year-table th:first-child, .year-table td:first-child{text-align:left;}
-  .year-table td{padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--line-soft);}
-  .year-table tr.total-row td{border-top:1px solid var(--line);border-bottom:none;font-weight:700;color:var(--text);padding-top:9px;}
-  .year-table tr.total-row{color:var(--text);}
-  .year-table td.year-label{font-family:'Manrope',sans-serif;font-weight:700;color:var(--text);}
+  .mini-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:12px 12px;box-shadow:0 2px 8px rgba(20,30,24,.04);
+  }
+  .mini-card .mini-label{font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:6px;}
+  .mini-card .mini-value{font-size:16px;font-weight:800;color:var(--text);}
+  @media (max-width:760px){ .stats{grid-template-columns:1fr;} .mini-stats{grid-template-columns:1fr 1fr;} }
+  @media (max-width:420px){ .mini-stats{grid-template-columns:1fr 1fr;} }
 
   /* ---------- Panels ---------- */
   .panel{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:16px 18px;margin-bottom:16px;
+    padding:18px 18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(20,30,24,.04);
   }
   .panel h2{
-    margin:0 0 14px;font-size:13px;letter-spacing:.3px;color:var(--muted);
-    display:flex;justify-content:space-between;align-items:center;font-weight:700;
+    margin:0 0 14px;font-size:15px;color:var(--text);
+    display:flex;justify-content:space-between;align-items:center;font-weight:800;flex-wrap:wrap;row-gap:8px;
   }
-  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);font-weight:600;}
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);font-weight:700;flex-wrap:wrap;}
   .legend span{display:flex;align-items:center;gap:5px;}
-  .legend .dot{width:8px;height:8px;border-radius:50%;}
-  .chart-wrap{height:340px;position:relative;}
+  .legend .dot{width:9px;height:9px;border-radius:50%;}
+  .chart-wrap{height:300px;position:relative;}
+
+  /* ---------- Year summary: cards strip ---------- */
+  .year-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+  .year-card{
+    flex:0 0 auto;min-width:150px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:14px;padding:14px 14px;
+  }
+  .year-card.total-card{background:linear-gradient(135deg, var(--completo) 0%, var(--completo-2) 100%);color:#fff;border:none;}
+  .year-card .yc-title{font-size:15px;font-weight:800;margin-bottom:8px;}
+  .year-card .yc-row{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:var(--muted);}
+  .year-card.total-card .yc-row{color:rgba(255,255,255,.85);}
+  .year-card .yc-row b{color:var(--text);font-weight:700;}
+  .year-card.total-card .yc-row b{color:#fff;}
+
+  /* ---------- Score breakdown: bar chart style ---------- */
+  .score-year-block{margin-bottom:18px;}
+  .score-year-block:last-child{margin-bottom:0;}
+  .score-year-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;}
+  .score-bars{display:flex;gap:10px;align-items:flex-end;height:120px;}
+  .score-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .score-bar-pct{font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px;}
+  .score-bar-track{width:100%;max-width:46px;flex:1;display:flex;align-items:flex-end;}
+  .score-bar-fill{width:100%;border-radius:10px 10px 4px 4px;min-height:4px;}
+  .score-bar-label{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:8px;text-align:center;}
+  .score-bar-count{font-size:11px;color:var(--muted-2);margin-top:1px;}
 
   /* ---------- Two column ---------- */
-  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;min-width:0;}
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start;min-width:0;}
   .grid2 > .panel{min-width:0;}
   @media (max-width:920px){
     .grid2{grid-template-columns:1fr;}
-    .stats{grid-template-columns:1fr 1fr;}
-    .stats .mini-stats{grid-column:span 2;}
     #panelPorCampo{order:1;}
     #panelHistorico{order:2;}
   }
-  @media (max-width:600px){ .stats{grid-template-columns:1fr;} .stats .mini-stats{grid-column:span 1;} }
 
-  table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  thead th{
-    text-align:left;font-size:10.5px;letter-spacing:.3px;color:var(--muted-2);
-    padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap;
+  /* ---------- Rounds list (cards, not a table) ---------- */
+  .rounds-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;padding-right:2px;}
+  .round-card{
+    display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line-soft);
+    border-radius:14px;padding:11px 13px;
   }
-  tbody td{padding:8px 8px;border-bottom:1px solid var(--line-soft);color:var(--text);white-space:nowrap;}
-  tbody tr:hover{background:var(--panel-2);}
-  tbody td.num, thead th.num{font-family:'JetBrains Mono',monospace;text-align:right;}
+  .round-card .rc-main{flex:1;min-width:0;}
+  .round-card .rc-date{font-size:10.5px;color:var(--muted-2);font-weight:700;}
+  .round-card .rc-campo{font-size:13px;font-weight:700;color:var(--text);overflow-wrap:break-word;}
+  .round-card .rc-tipo{font-size:11px;color:var(--muted);margin-top:1px;}
+  .round-card .rc-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .round-card .rc-dif{font-size:19px;font-weight:800;color:var(--text);}
   .badge{
-    display:inline-block;padding:2px 7px;border-radius:2px;font-size:10.5px;font-weight:700;
-    letter-spacing:.2px;
+    display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;
+    letter-spacing:.2px;white-space:nowrap;
   }
-  .badge.oficial{background:rgba(201,162,75,.16);color:var(--oficial);}
-  .badge.no-oficial{background:rgba(95,167,119,.14);color:var(--completo);}
-  .table-x-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;max-width:100%;}
-  .table-scroll{max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+  .badge.oficial{background:rgba(47,111,237,.13);color:var(--oficial-2);}
+  .badge.no-oficial{background:rgba(22,163,74,.12);color:var(--completo-2);}
   .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
   .filter-tabs button{
-    background:transparent;border:1px solid var(--line);color:var(--muted);
-    font-family:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:2px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;font-size:11px;font-weight:700;padding:6px 11px;border-radius:999px;cursor:pointer;
   }
-  .filter-tabs button.active{background:var(--completo);color:#0B1210;border-color:var(--completo);}
+  .filter-tabs button.active{background:var(--completo);color:#fff;border-color:var(--completo);}
 
-  .campo-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);}
+  .campo-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line-soft);}
   .campo-row:last-child{border-bottom:none;}
-  .campo-name{font-size:12.5px;min-width:0;overflow-wrap:break-word;}
-  .campo-name small{display:block;color:var(--muted-2);font-size:10.5px;margin-top:2px;}
-  .campo-stat{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0;white-space:nowrap;}
-  .campo-stat small{display:block;color:var(--muted-2);font-family:'Manrope',sans-serif;font-size:10px;font-weight:500;}
+  .campo-name{font-size:13px;font-weight:700;min-width:0;overflow-wrap:break-word;}
+  .campo-name small{display:block;color:var(--muted-2);font-size:10.5px;margin-top:2px;font-weight:500;}
+  .campo-stat{text-align:right;font-size:15px;font-weight:800;flex-shrink:0;white-space:nowrap;}
+  .campo-stat small{display:block;color:var(--muted-2);font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;}
+
+  /* ---------- Goal panel ---------- */
+  .goal-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .goal-form select, .goal-form input{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 11px;border-radius:10px;font-family:inherit;font-size:13px;
+  }
+  .goal-form input{width:110px;}
+  .goal-current{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+  .goal-current .big{font-size:32px;font-weight:800;}
+  .goal-current .arrow{color:var(--muted-2);font-size:18px;}
+  .goal-current .target{font-size:20px;color:var(--completo);font-weight:800;}
+  .goal-bar-track{height:12px;border-radius:6px;background:var(--line-soft);overflow:hidden;margin-bottom:10px;position:relative;}
+  .goal-bar-fill{height:100%;background:linear-gradient(90deg, var(--completo), var(--solo18));border-radius:6px;transition:width .3s ease;}
+  .goal-note{font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .goal-note.good{color:var(--good);font-weight:700;}
+  .goal-note.warn{color:var(--bad);font-weight:700;}
+  .goal-empty{color:var(--muted-2);font-size:12.5px;}
 
   /* ---------- Modal ---------- */
   .overlay{
-    position:fixed;inset:0;background:rgba(4,8,6,.6);display:none;align-items:flex-start;justify-content:center;
-    z-index:50;padding:40px 16px;overflow-y:auto;
+    position:fixed;inset:0;background:rgba(15,25,19,.55);display:none;align-items:flex-start;justify-content:center;
+    z-index:50;padding:30px 16px;overflow-y:auto;backdrop-filter:blur(2px);
   }
   .overlay.open{display:flex;}
   .modal{
-    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    width:100%;max-width:560px;padding:20px 22px 22px;
+    background:var(--panel);border:1px solid var(--line);border-radius:22px;
+    width:100%;max-width:560px;padding:22px 22px 22px;position:relative;
+    box-shadow:0 24px 60px rgba(15,25,19,.25);
   }
-  .modal h3{margin:0 0 4px;font-size:16px;}
-  .modal .modal-sub{color:var(--muted);font-size:12px;margin-bottom:16px;}
+  .modal h3{margin:0 0 4px;font-size:18px;font-weight:800;}
+  .modal .modal-sub{color:var(--muted);font-size:12.5px;margin-bottom:16px;}
   .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
-  .field label{font-size:11.5px;color:var(--muted);font-weight:600;}
+  .field label{font-size:11.5px;color:var(--muted);font-weight:700;}
   .field input, .field select{
     background:var(--panel-2);border:1px solid var(--line);color:var(--text);
-    padding:8px 9px;border-radius:2px;font-family:inherit;font-size:13px;
+    padding:10px 11px;border-radius:12px;font-family:inherit;font-size:13.5px;
   }
   .field input:focus, .field select:focus{outline:2px solid var(--completo);outline-offset:-1px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .toggle-group{display:flex;gap:8px;margin-bottom:14px;}
   .toggle-group button{
-    flex:1;padding:9px;border-radius:2px;border:1px solid var(--line);background:transparent;
-    color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;
+    flex:1;padding:11px;border-radius:14px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--muted);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
   }
-  .toggle-group button.active{background:var(--oficial);color:#0B1210;border-color:var(--oficial);}
+  .toggle-group button.active{background:var(--oficial);color:#fff;border-color:var(--oficial);}
   .toggle-group button.active.no-of{background:var(--completo);border-color:var(--completo);}
   .holes-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-top:4px;}
-  .holes-grid input{padding:6px 2px;text-align:center;font-size:12px;}
-  .holes-label{font-size:10px;color:var(--muted-2);text-align:center;}
+  .holes-grid input{padding:8px 2px;text-align:center;font-size:12px;border-radius:8px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
   .close-x{
-    position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);
-    font-size:18px;cursor:pointer;line-height:1;
+    position:absolute;top:16px;right:18px;background:var(--panel-2);border:none;color:var(--muted);
+    font-size:15px;cursor:pointer;line-height:1;width:30px;height:30px;border-radius:50%;
   }
-  .modal{position:relative;}
   .hint{font-size:11px;color:var(--muted-2);margin-top:2px;}
   .empty-msg{color:var(--muted-2);font-size:12.5px;padding:20px 0;text-align:center;}
 
-  footer{margin-top:22px;color:var(--muted-2);font-size:11px;text-align:center;}
+  footer{margin-top:20px;color:var(--muted-2);font-size:11px;text-align:center;}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-  <header>
-    <div class="id">
-      <h1>HCP TRACKER <span>· Real vs. Teórico</span></h1>
-      <div class="sub" id="headerSub">—</div>
-    </div>
-    <div class="header-actions">
-      <input type="file" id="fileImportExcel" accept=".xlsx" style="display:none;">
-      <div class="dropdown-wrap" id="bbddDropdownWrap">
-        <button class="btn secondary" id="btnBbddMenu">🗄️ BBDD ▾</button>
-        <div class="dropdown-menu" id="bbddDropdownMenu">
-          <button id="menuImportExcel">📥 Importar Excel</button>
-          <button id="menuExportExcel">💾 Exportar Excel</button>
-          <button id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar Nube</button>
-        </div>
-      </div>
-      <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
-      <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar rondas</button>
-      <button class="btn secondary" id="btnGithubConfig" title="Configurar el token de acceso de GitHub" style="padding:10px 12px;">⚙️</button>
-      <button class="btn" id="btnAdd">+ Nueva ronda</button>
-    </div>
+  <header class="hero">
+    <h1>⛳ HCP Tracker</h1>
+    <div class="sub" id="headerSub">—</div>
   </header>
 
-  <div id="errorBar" style="display:none;background:rgba(193,96,74,.15);border:1px solid var(--bad);color:var(--bad);padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;"></div>
+  <div class="action-row">
+    <input type="file" id="fileImportExcel" accept=".xlsx" style="display:none;">
+    <div class="dropdown-wrap" id="bbddDropdownWrap">
+      <button class="btn secondary" id="btnBbddMenu">🗄️ BBDD ▾</button>
+      <div class="dropdown-menu" id="bbddDropdownMenu">
+        <button id="menuImportExcel">📥 Importar Excel</button>
+        <button id="menuExportExcel">💾 Exportar Excel</button>
+        <button id="btnGithubSync" title="Sube las rondas que has añadido a tu repositorio de GitHub">☁️ Sincronizar Nube</button>
+      </div>
+    </div>
+    <button class="btn secondary" id="btnClearImport" style="display:none;" title="Vuelve a los datos originales cargados en la app">Quitar Excel importado</button>
+    <button class="btn secondary" id="btnResetExtra" title="Elimina solo las rondas añadidas desde esta app">Borrar rondas</button>
+    <button class="btn secondary icon" id="btnGithubConfig" title="Configurar el token de acceso de GitHub">⚙️</button>
+    <button class="btn" id="btnAdd">+ Nueva ronda</button>
+  </div>
+
+  <div id="errorBar" style="display:none;background:rgba(224,72,60,.12);border:1px solid var(--bad);color:var(--bad);padding:9px 14px;border-radius:14px;font-size:12px;margin-bottom:12px;font-weight:600;"></div>
   <div id="importBanner" class="import-banner"></div>
-  <div id="githubSyncStatus" class="import-banner" style="display:block;background:rgba(140,160,151,.10);border-color:var(--line);color:var(--muted);"></div>
+  <div id="githubSyncStatus" class="import-banner" style="display:block;background:var(--panel-2);border-color:var(--line);color:var(--muted);"></div>
 
   <div class="pp-toggle-row">
     <button class="btn secondary toggle-pp" id="btnTogglePP" title="Excluye del cálculo teórico las vueltas jugadas en pistas Pitch & Putt (las oficiales de P&P nunca se excluyen)">⛳ Excluir Pitch&nbsp;&amp;&nbsp;Putt</button>
   </div>
 
   <div class="stats">
-    <div class="stat-card">
-      <div class="label"><span><span class="dot" style="background:var(--oficial)"></span>Oficial de torneo</span></div>
-      <div class="value num" id="statOficial">—</div>
+    <div class="stat-card c-oficial">
+      <div class="label">🏆 Oficial de torneo</div>
+      <div class="value-pill num" id="statOficial">—</div>
       <div class="delta" id="deltaOficial">—</div>
     </div>
-    <div class="stat-card">
-      <div class="label"><span><span class="dot" style="background:var(--completo)"></span>Teórico completo</span></div>
-      <div class="value num" id="statCompleto">—</div>
+    <div class="stat-card c-completo">
+      <div class="label">⛳ Teórico completo</div>
+      <div class="value-pill num" id="statCompleto">—</div>
       <div class="delta" id="deltaCompleto">—</div>
     </div>
-    <div class="stat-card">
-      <div class="label"><span><span class="dot" style="background:var(--solo18)"></span>Teórico solo 18h</span></div>
-      <div class="value num" id="statSolo18">—</div>
+    <div class="stat-card c-solo18">
+      <div class="label">🏌️ Teórico solo 18h</div>
+      <div class="value-pill num" id="statSolo18">—</div>
       <div class="delta" id="deltaSolo18">—</div>
     </div>
-    <div class="mini-stats">
-      <div class="mini-row"><span>Vueltas totales</span><b id="miniTotal">—</b></div>
-      <div class="mini-row"><span>Oficiales / No oficiales</span><b id="miniSplit">—</b></div>
-      <div class="mini-row"><span>Mejor diferencial (histórico)</span><b id="miniBest">—</b></div>
-      <div class="mini-row"><span>Última vuelta</span><b id="miniLast">—</b></div>
-      <div class="mini-row"><span>Distancia total jugada</span><b id="miniKm">—</b></div>
-    </div>
+  </div>
+
+  <div class="mini-stats">
+    <div class="mini-card"><div class="mini-label">VUELTAS</div><div class="mini-value" id="miniTotal">—</div></div>
+    <div class="mini-card"><div class="mini-label">OFIC. / NO OFIC.</div><div class="mini-value" id="miniSplit">—</div></div>
+    <div class="mini-card"><div class="mini-label">MEJOR DIF.</div><div class="mini-value" id="miniBest">—</div></div>
+    <div class="mini-card"><div class="mini-label">ÚLTIMA VUELTA</div><div class="mini-value" id="miniLast">—</div></div>
+    <div class="mini-card"><div class="mini-label">DISTANCIA</div><div class="mini-value" id="miniKm">—</div></div>
   </div>
 
   <div class="panel" id="yearPanel">
-    <h2><span>RESUMEN POR AÑO</span></h2>
-    <div class="table-x-scroll">
-      <table class="year-table">
-        <thead>
-          <tr><th>Año</th><th>Rondas</th><th>Hoyos jugados</th><th>Mejor diferencial</th><th>Distancia</th></tr>
-        </thead>
-        <tbody id="yearBody"></tbody>
-      </table>
-    </div>
+    <h2><span>📅 Resumen por año</span></h2>
+    <div class="year-strip" id="yearBody"></div>
   </div>
 
   <div class="panel" id="scorePanel">
-    <h2><span>RESUMEN POR PUNTUACIÓN</span></h2>
-    <div class="hint" style="margin-bottom:10px;">Solo vueltas no oficiales (son las únicas de las que tenemos el detalle golpe a golpe).</div>
-    <div class="table-x-scroll">
-      <table class="year-table">
-        <thead>
-          <tr><th>Año</th><th>Hoyos</th><th>Birdie</th><th>Par</th><th>Bogey</th><th>Doble bogey</th><th>Más</th></tr>
-        </thead>
-        <tbody id="scoreBody"></tbody>
-      </table>
-    </div>
+    <h2><span>🎯 Resumen por puntuación</span></h2>
+    <div class="hint" style="margin-bottom:14px;">Solo vueltas no oficiales (son las únicas de las que tenemos el detalle golpe a golpe).</div>
+    <div id="scoreBody"></div>
   </div>
 
   <div class="panel" id="goalPanel">
-    <h2><span>OBJETIVO DE HÁNDICAP</span></h2>
+    <h2><span>🎯 Objetivo de hándicap</span></h2>
     <div class="goal-form">
       <select id="goalTrack">
         <option value="completo">Teórico completo</option>
@@ -352,7 +361,7 @@
 
   <div class="panel">
     <h2>
-      <span>EVOLUCIÓN DEL HÁNDICAP</span>
+      <span>📈 Evolución del hándicap</span>
       <span class="legend">
         <span><span class="dot" style="background:var(--oficial)"></span>Oficial</span>
         <span><span class="dot" style="background:var(--completo)"></span>Teórico completo</span>
@@ -365,28 +374,19 @@
   <div class="grid2">
     <div class="panel" id="panelHistorico">
       <h2>
-        <span>HISTÓRICO DE VUELTAS</span>
+        <span>🗒️ Histórico de vueltas</span>
         <span class="filter-tabs" id="filterTabs">
           <button data-f="all" class="active">Todas</button>
           <button data-f="oficial">Oficiales</button>
           <button data-f="no-oficial">No oficiales</button>
         </span>
       </h2>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha</th><th>Campo</th><th>Tipo</th><th class="num">Dif.</th><th></th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="roundsBody"></tbody>
-        </table>
-      </div>
+      <div class="rounds-list" id="roundsBody"></div>
     </div>
 
     <div class="panel" id="panelPorCampo">
       <h2>
-        <span>POR CAMPO</span>
+        <span>📍 Por campo</span>
         <span class="filter-tabs" id="campoScopeTabs">
           <button data-scope="all" class="active">Todas</button>
           <button data-scope="last5">Últimas 5</button>
@@ -779,26 +779,28 @@ function renderChart(timeline){
 }
 
 function renderTable(table){
-  const tbody = document.getElementById('roundsBody');
+  const wrap = document.getElementById('roundsBody');
   let rows = [...table].reverse();
   if(currentFilter==='oficial') rows = rows.filter(r=>r.oficial);
   if(currentFilter==='no-oficial') rows = rows.filter(r=>!r.oficial);
-  if(!rows.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">Sin vueltas para este filtro todavía.</td></tr>`; return; }
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
-      <td title="${fmtDate(r.fecha)}">${fmtDate(r.fecha)}</td>
-      <td title="${r.campo}">${r.campo}</td>
-      <td title="${r.tipo}">${r.tipo}</td>
-      <td class="num">${r.dif.toFixed(1)}</td>
-      <td><span class="badge ${r.oficial?'oficial':'no-oficial'}">${r.oficial?'Oficial':'No ofic.'}</span></td>
-      <td>${r.source==='extra'
+  if(!rows.length){ wrap.innerHTML = `<div class="empty-msg">Sin vueltas para este filtro todavía.</div>`; return; }
+  wrap.innerHTML = rows.map(r=>`
+    <div class="round-card">
+      <div class="rc-main">
+        <div class="rc-date">${fmtDate(r.fecha)} <span class="badge ${r.oficial?'oficial':'no-oficial'}">${r.oficial?'Oficial':'No ofic.'}</span></div>
+        <div class="rc-campo">${r.campo}</div>
+        <div class="rc-tipo">${r.tipo}</div>
+      </div>
+      <div class="rc-right">
+        <div class="rc-dif num">${r.dif.toFixed(1)}</div>
+        ${r.source==='extra'
           ? `<div class="row-actions">
                <button data-action="edit" data-id="${r.id}" data-oficial="${r.oficial}" title="Editar">✎</button>
                <button data-action="delete" data-id="${r.id}" data-oficial="${r.oficial}" class="danger" title="Borrar">🗑</button>
              </div>`
           : ``}
-      </td>
-    </tr>`).join('');
+      </div>
+    </div>`).join('');
 }
 
 let campoScope = 'all';
@@ -876,28 +878,38 @@ function renderScoreBreakdown(events){
   const totals = {holes:0, birdie:0, par:0, bogey:0, doble:0, mas:0};
   for(const y of sortedYears){ for(const k in totals){ totals[k]+=years[y][k]; } }
 
-  const tbody = document.getElementById('scoreBody');
-  let html = sortedYears.map(y=>`
-    <tr>
-      <td class="year-label">${y}</td>
-      <td>${years[y].holes}</td>
-      <td>${years[y].birdie}</td>
-      <td>${years[y].par}</td>
-      <td>${years[y].bogey}</td>
-      <td>${years[y].doble}</td>
-      <td>${years[y].mas}</td>
-    </tr>`).join('');
-  html += `
-    <tr class="total-row">
-      <td class="year-label">Total</td>
-      <td>${totals.holes}</td>
-      <td>${totals.birdie}</td>
-      <td>${totals.par}</td>
-      <td>${totals.bogey}</td>
-      <td>${totals.doble}</td>
-      <td>${totals.mas}</td>
-    </tr>`;
-  tbody.innerHTML = html || `<tr><td colspan="7" class="empty-msg">Sin datos golpe a golpe todavía.</td></tr>`;
+  const cats = [
+    {key:'birdie', label:'Birdie', color:'#16A34A'},
+    {key:'par',    label:'Par',    color:'#2F6FED'},
+    {key:'bogey',  label:'Bogey',  color:'#0E9E9D'},
+    {key:'doble',  label:'D.Bogey',color:'#E0A63C'},
+    {key:'mas',    label:'Más',    color:'#E0483C'},
+  ];
+
+  function renderBlock(title, data){
+    if(data.holes === 0) return '';
+    const bars = cats.map(c=>{
+      const count = data[c.key];
+      const pct = Math.round((count / data.holes) * 100);
+      return `
+        <div class="score-bar-col">
+          <div class="score-bar-pct">${pct}%</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="height:${Math.max(pct,3)}%;background:${c.color};"></div></div>
+          <div class="score-bar-label">${c.label}</div>
+          <div class="score-bar-count">${count}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="score-year-block">
+        <div class="score-year-title">${title} <span class="hint" style="margin:0;">· ${data.holes} hoyos</span></div>
+        <div class="score-bars">${bars}</div>
+      </div>`;
+  }
+
+  const wrap = document.getElementById('scoreBody');
+  let html = sortedYears.map(y => renderBlock(y, years[y])).join('');
+  html += renderBlock('Total', totals);
+  wrap.innerHTML = html || `<div class="empty-msg">Sin datos golpe a golpe todavía.</div>`;
 }
 
 /* ================= Objetivo de hándicap ================= */
@@ -1023,24 +1035,24 @@ function renderYearBreakdown(table){
   const totalBest = table.reduce((m,r)=> (m===null||r.dif<m)?r.dif:m, null);
   const totalKm = sortedYears.reduce((a,y)=>a+years[y].km,0);
 
-  const tbody = document.getElementById('yearBody');
+  const wrap = document.getElementById('yearBody');
   let html = sortedYears.map(y=>`
-    <tr>
-      <td class="year-label">${y}</td>
-      <td>${years[y].rounds}</td>
-      <td>${years[y].holes}</td>
-      <td>${years[y].best.toFixed(1)}</td>
-      <td>${years[y].km.toFixed(1)} km</td>
-    </tr>`).join('');
+    <div class="year-card">
+      <div class="yc-title">${y}</div>
+      <div class="yc-row"><span>Rondas</span><b>${years[y].rounds}</b></div>
+      <div class="yc-row"><span>Hoyos</span><b>${years[y].holes}</b></div>
+      <div class="yc-row"><span>Mejor dif.</span><b>${years[y].best.toFixed(1)}</b></div>
+      <div class="yc-row"><span>Distancia</span><b>${years[y].km.toFixed(1)} km</b></div>
+    </div>`).join('');
   html += `
-    <tr class="total-row">
-      <td class="year-label">Total</td>
-      <td>${totalRounds}</td>
-      <td>${totalHoles}</td>
-      <td>${totalBest!=null ? totalBest.toFixed(1) : '—'}</td>
-      <td>${totalKm.toFixed(1)} km</td>
-    </tr>`;
-  tbody.innerHTML = html;
+    <div class="year-card total-card">
+      <div class="yc-title">Total</div>
+      <div class="yc-row"><span>Rondas</span><b>${totalRounds}</b></div>
+      <div class="yc-row"><span>Hoyos</span><b>${totalHoles}</b></div>
+      <div class="yc-row"><span>Mejor dif.</span><b>${totalBest!=null ? totalBest.toFixed(1) : '—'}</b></div>
+      <div class="yc-row"><span>Distancia</span><b>${totalKm.toFixed(1)} km</b></div>
+    </div>`;
+  wrap.innerHTML = html || `<div class="empty-msg">Sin datos todavía.</div>`;
 }
 
 /* ================= Modal / add-edit round ================= */
