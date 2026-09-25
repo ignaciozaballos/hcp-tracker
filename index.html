@@ -280,6 +280,31 @@
   .empty-msg{color:var(--muted-2);font-size:12.5px;padding:20px 0;text-align:center;}
 
   footer{margin-top:20px;color:var(--muted-2);font-size:11px;text-align:center;}
+
+  /* ---------- Round detail modal ---------- */
+  .round-card.clickable{cursor:pointer;transition:transform .08s ease;}
+  .round-card.clickable:hover{background:var(--line-soft);}
+  .round-card.clickable:active{transform:scale(.99);}
+  .rd-header .rd-campo{font-size:17px;font-weight:800;padding-right:20px;}
+  .rd-big{display:flex;align-items:center;gap:14px;margin:14px 0 16px;flex-wrap:wrap;}
+  .rd-dif-pill{
+    background:linear-gradient(135deg, var(--completo), var(--completo-2));color:#fff;
+    border-radius:16px;padding:10px 16px;font-size:26px;font-weight:800;line-height:1;
+  }
+  .rd-dif-pill span{display:block;font-size:10px;font-weight:700;opacity:.85;margin-top:3px;}
+  .rd-mini{text-align:center;}
+  .rd-mini b{display:block;font-size:20px;font-weight:800;}
+  .rd-mini span{display:block;font-size:10px;color:var(--muted);font-weight:700;}
+  table.rd-table{width:auto;border-collapse:collapse;}
+  table.rd-table th, table.rd-table td{padding:5px 7px;text-align:center;font-size:11.5px;white-space:nowrap;}
+  table.rd-table thead th{color:var(--muted-2);font-weight:700;font-size:10.5px;border-bottom:1px solid var(--line);}
+  table.rd-table td.rd-rowlabel, table.rd-table th:first-child{
+    text-align:left;font-weight:700;color:var(--muted);position:sticky;left:0;background:var(--panel);
+  }
+  .rd-si, .rd-par{color:var(--muted);}
+  .rd-score-pill{
+    display:inline-block;min-width:24px;padding:3px 6px;border-radius:8px;font-weight:800;font-size:12.5px;
+  }
 </style>
 </head>
 <body>
@@ -473,6 +498,14 @@
   </div>
 </div>
 
+<!-- Modal: detalle de vuelta (tarjeta hoyo a hoyo) -->
+<div class="overlay" id="overlayRoundDetail">
+  <div class="modal" style="max-width:640px;">
+    <button class="close-x" id="closeRoundDetail">✕</button>
+    <div id="roundDetailBody"></div>
+  </div>
+</div>
+
 <!-- Modal: configuración de GitHub -->
 <div class="overlay" id="overlayGithub">
   <div class="modal">
@@ -594,7 +627,7 @@ function processEvents(events, campos, options){
       for(let h=0; h<18; h++) ags += capHoleScore(e.holes[h], par[h], strokes[h]);
       const dif = round1((113/slope)*(ags-cr-PCC));
       histCompleto.push(dif); hist18h.push(dif);
-      table.push({fecha:e.fecha, campo:e.campo, tipo:'18 hoyos', dif, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km:campo.km});
+      table.push({fecha:e.fecha, campo:e.campo, tipo:'18 hoyos', dif, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km:campo.km, holes:e.holes});
     } else {
       const isIda = e.tipo.includes('Ida');
       const idxs = isIda ? [0,1,2,3,4,5,6,7,8] : [9,10,11,12,13,14,15,16,17];
@@ -612,7 +645,7 @@ function processEvents(events, campos, options){
       const expectedOther9 = hcpRef/2;
       const dif18eq = round1(dif9+expectedOther9);
       histCompleto.push(dif18eq);
-      table.push({fecha:e.fecha, campo:e.campo, tipo:e.tipo, dif:dif18eq, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km: campo.km!=null ? round1(campo.km/2) : null});
+      table.push({fecha:e.fecha, campo:e.campo, tipo:e.tipo, dif:dif18eq, oficial:false, notas:e.notas||'', id:e.id, source:e.source, km: campo.km!=null ? round1(campo.km/2) : null, holes:e.holes});
     }
     timeline.push([e.fecha, handicapIndex(histOficial), handicapIndex(histCompleto), handicapIndex(hist18h)]);
   }
@@ -785,18 +818,21 @@ function renderChart(timeline){
   });
 }
 
+let currentRoundsRows = [];
+
 function renderTable(table){
   const wrap = document.getElementById('roundsBody');
   let rows = [...table].reverse();
   if(currentFilter==='oficial') rows = rows.filter(r=>r.oficial);
   if(currentFilter==='no-oficial') rows = rows.filter(r=>!r.oficial);
+  currentRoundsRows = rows;
   if(!rows.length){ wrap.innerHTML = `<div class="empty-msg">Sin vueltas para este filtro todavía.</div>`; return; }
-  wrap.innerHTML = rows.map(r=>`
-    <div class="round-card">
+  wrap.innerHTML = rows.map((r,i)=>`
+    <div class="round-card${r.holes ? ' clickable' : ''}" ${r.holes ? `data-idx="${i}"` : ''}>
       <div class="rc-main">
         <div class="rc-date">${fmtDate(r.fecha)} <span class="badge ${r.oficial?'oficial':'no-oficial'}">${r.oficial?'Oficial':'No ofic.'}</span></div>
         <div class="rc-campo">${r.campo}</div>
-        <div class="rc-tipo">${r.tipo}</div>
+        <div class="rc-tipo">${r.tipo}${r.holes ? ' · toca para ver la tarjeta' : ''}</div>
       </div>
       <div class="rc-right">
         <div class="rc-dif num">${r.dif.toFixed(1)}</div>
@@ -855,6 +891,14 @@ function classifyScore(diff){
   return 'mas';
 }
 
+const CATS = [
+  {key:'birdie', label:'Birdie', color:'#16A34A'},
+  {key:'par',    label:'Par',    color:'#2F6FED'},
+  {key:'bogey',  label:'Bogey',  color:'#0E9E9D'},
+  {key:'doble',  label:'D.Bogey',color:'#E0A63C'},
+  {key:'mas',    label:'Más',    color:'#E0483C'},
+];
+
 function renderScoreBreakdown(events){
   const years = {};
   for(const e of events){
@@ -885,13 +929,7 @@ function renderScoreBreakdown(events){
   const totals = {holes:0, birdie:0, par:0, bogey:0, doble:0, mas:0};
   for(const y of sortedYears){ for(const k in totals){ totals[k]+=years[y][k]; } }
 
-  const cats = [
-    {key:'birdie', label:'Birdie', color:'#16A34A'},
-    {key:'par',    label:'Par',    color:'#2F6FED'},
-    {key:'bogey',  label:'Bogey',  color:'#0E9E9D'},
-    {key:'doble',  label:'D.Bogey',color:'#E0A63C'},
-    {key:'mas',    label:'Más',    color:'#E0483C'},
-  ];
+  const cats = CATS;
 
   function renderBlock(title, data){
     if(data.holes === 0) return '';
@@ -1174,11 +1212,18 @@ overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); })
 
 document.getElementById('roundsBody').addEventListener('click', (e)=>{
   const btn = e.target.closest('button[data-action]');
-  if(!btn) return;
-  const id = btn.dataset.id;
-  const isOficial = btn.dataset.oficial === 'true';
-  if(btn.dataset.action === 'edit') openModalForEdit(id, isOficial);
-  if(btn.dataset.action === 'delete') deleteExtraRound(id, isOficial);
+  if(btn){
+    const id = btn.dataset.id;
+    const isOficial = btn.dataset.oficial === 'true';
+    if(btn.dataset.action === 'edit') openModalForEdit(id, isOficial);
+    if(btn.dataset.action === 'delete') deleteExtraRound(id, isOficial);
+    return;
+  }
+  const card = e.target.closest('.round-card.clickable');
+  if(card){
+    const idx = parseInt(card.dataset.idx, 10);
+    openRoundDetail(currentRoundsRows[idx]);
+  }
 });
 
 tgOficial.addEventListener('click', ()=>{ if(!editingId) setToggleMode('oficial'); });
@@ -1500,7 +1545,92 @@ document.getElementById('menuImportExcel').addEventListener('click', ()=>{ bbddM
 document.getElementById('menuExportExcel').addEventListener('click', ()=>{ bbddMenu.classList.remove('open'); });
 document.getElementById('btnGithubSync').addEventListener('click', ()=>{ bbddMenu.classList.remove('open'); });
 
-/* ================= Import Excel ================= */
+/* ================= Detalle de una vuelta (tarjeta hoyo a hoyo) ================= */
+function openRoundDetail(r){
+  if(!r || !r.holes) return;
+  const campo = getActiveData().campos[r.campo];
+  if(!campo){ alert('No encuentro los datos de par/hándicap de este campo.'); return; }
+
+  let idxs;
+  if(r.tipo === '18 hoyos') idxs = Array.from({length:18}, (_,i)=>i);
+  else if(r.tipo.includes('Ida')) idxs = [0,1,2,3,4,5,6,7,8];
+  else idxs = [9,10,11,12,13,14,15,16,17];
+
+  const counts = {birdie:0, par:0, bogey:0, doble:0, mas:0};
+  let totalScore = 0, totalPar = 0, playedHoles = 0;
+  const cells = idxs.map(i=>{
+    const score = r.holes[i];
+    const par = campo.par[i];
+    const si = campo.si[i];
+    if(score==null) return {i, score:null, par, si};
+    const cat = classifyScore(score-par);
+    counts[cat]++;
+    totalScore += score; totalPar += par; playedHoles++;
+    return {i, score, par, si, cat};
+  });
+
+  const catColor = Object.fromEntries(CATS.map(c=>[c.key, c.color]));
+
+  const headHoyo = cells.map(c=>`<th>${c.i+1}</th>`).join('');
+  const rowSI    = cells.map(c=>`<td class="rd-si">${c.si}</td>`).join('');
+  const rowPar   = cells.map(c=>`<td class="rd-par">${c.par}</td>`).join('');
+  const rowScore = cells.map(c=>{
+    if(c.score==null) return `<td>—</td>`;
+    const bg = c.cat==='par' ? 'transparent' : catColor[c.cat];
+    const fg = c.cat==='par' ? 'var(--text)' : '#fff';
+    return `<td><span class="rd-score-pill" style="background:${bg};color:${fg};">${c.score}</span></td>`;
+  }).join('');
+
+  const barsHtml = CATS.map(c=>{
+    const n = counts[c.key];
+    const pct = playedHoles ? Math.round((n/playedHoles)*100) : 0;
+    if(n === 0) return '';
+    return `
+      <div class="score-bar-col">
+        <div class="score-bar-pct">${pct}%</div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="height:${Math.max(pct,3)}%;background:${c.color};"></div></div>
+        <div class="score-bar-label">${c.label}</div>
+        <div class="score-bar-count">${n}</div>
+      </div>`;
+  }).join('');
+
+  const cr = r.tipo==='18 hoyos' ? campo.cr18 : (r.tipo.includes('Ida') ? campo.cr9i : campo.cr9v);
+  const slope = r.tipo==='18 hoyos' ? campo.sl18 : (r.tipo.includes('Ida') ? campo.sl9i : campo.sl9v);
+
+  const body = document.getElementById('roundDetailBody');
+  body.innerHTML = `
+    <div class="rd-header">
+      <div class="rd-campo">${r.campo}</div>
+      <div class="hint" style="margin:2px 0 0;">${fmtDate(r.fecha)} · ${r.tipo}</div>
+    </div>
+    <div class="rd-big">
+      <div class="rd-dif-pill num">${r.dif.toFixed(1)}<span>diferencial</span></div>
+      <div class="rd-mini"><b>${totalScore}</b><span>golpes</span></div>
+      <div class="rd-mini"><b>${totalPar}</b><span>par</span></div>
+    </div>
+    <div class="table-x-scroll">
+      <table class="rd-table">
+        <thead><tr><th>Hoyo</th>${headHoyo}</tr></thead>
+        <tbody>
+          <tr><td class="rd-rowlabel">HCP</td>${rowSI}</tr>
+          <tr><td class="rd-rowlabel">Par</td>${rowPar}</tr>
+          <tr><td class="rd-rowlabel">Result.</td>${rowScore}</tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="hint" style="margin:10px 0 4px;">CR ${cr ?? '—'} · Slope ${slope ?? '—'}</div>
+    <div class="score-bars" style="margin-top:12px;">${barsHtml}</div>
+  `;
+  document.getElementById('overlayRoundDetail').classList.add('open');
+}
+document.getElementById('closeRoundDetail').addEventListener('click', ()=>{
+  document.getElementById('overlayRoundDetail').classList.remove('open');
+});
+document.getElementById('overlayRoundDetail').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlayRoundDetail') document.getElementById('overlayRoundDetail').classList.remove('open');
+});
+
+
 function excelCellToISO(v){
   if(v==null || v==='') return null;
   if(typeof v === 'string'){
