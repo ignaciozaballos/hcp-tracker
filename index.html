@@ -306,6 +306,35 @@
   .rd-score-pill{
     display:inline-block;min-width:24px;padding:3px 6px;border-radius:8px;font-weight:800;font-size:12.5px;
   }
+
+  /* ---------- Stat cards clickable + HCP detail modal ---------- */
+  .stat-card.clickable{cursor:pointer;transition:transform .08s ease, filter .08s ease;}
+  .stat-card.clickable:hover{filter:brightness(1.07);}
+  .stat-card.clickable:active{transform:scale(.98);}
+  .hd-title{font-size:17px;font-weight:800;margin:0 0 2px;padding-right:20px;}
+  .hd-summary{font-size:13px;color:var(--muted);margin:2px 0 14px;line-height:1.5;}
+  .hd-summary b{color:var(--text);}
+  .hd-callout{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:16px;}
+  .hd-callout-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+  .hd-callout-val{font-size:26px;font-weight:800;color:var(--bad);margin:4px 0;}
+  .hd-callout-sub{font-size:11.5px;color:var(--muted-2);line-height:1.4;}
+  .hd-list-title{font-size:11.5px;font-weight:800;color:var(--text);margin-bottom:8px;}
+  .hd-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-bottom:16px;padding-right:2px;}
+  .hd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line-soft);}
+  .hd-row.resting{opacity:.5;}
+  .hd-row.worst{border-color:var(--bad);background:rgba(224,72,60,.08);}
+  .hd-main{min-width:0;}
+  .hd-date{font-size:10px;color:var(--muted-2);font-weight:700;}
+  .hd-campo{font-size:12.5px;font-weight:700;color:var(--text);overflow-wrap:break-word;}
+  .hd-right{text-align:right;flex-shrink:0;}
+  .hd-dif{font-size:16px;font-weight:800;color:var(--text);}
+  .hd-tag{font-size:9.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.2px;}
+  .hd-row.worst .hd-tag{color:var(--bad);}
+  .hd-fwd{border-top:1px solid var(--line-soft);padding-top:12px;}
+  .hd-fwd-title{font-size:11.5px;font-weight:800;color:var(--text);margin-bottom:8px;}
+  .hd-fwd-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);padding:3px 0;}
+  .hd-fwd-row b{color:var(--text);}
+  .hd-fwd-row.muted{color:var(--muted-2);}
 </style>
 </head>
 <body>
@@ -341,17 +370,17 @@
   </div>
 
   <div class="stats">
-    <div class="stat-card c-oficial">
+    <div class="stat-card c-oficial clickable" data-track="oficial" title="Toca para ver qué resultados se están promediando">
       <div class="label">🏆 Oficial de torneo</div>
       <div class="value-pill num" id="statOficial">—</div>
       <div class="delta" id="deltaOficial">—</div>
     </div>
-    <div class="stat-card c-completo">
+    <div class="stat-card c-completo clickable" data-track="completo" title="Toca para ver qué resultados se están promediando">
       <div class="label">⛳ Teórico completo</div>
       <div class="value-pill num" id="statCompleto">—</div>
       <div class="delta" id="deltaCompleto">—</div>
     </div>
-    <div class="stat-card c-solo18">
+    <div class="stat-card c-solo18 clickable" data-track="solo18h" title="Toca para ver qué resultados se están promediando">
       <div class="label">🏌️ Teórico solo 18h</div>
       <div class="value-pill num" id="statSolo18">—</div>
       <div class="delta" id="deltaSolo18">—</div>
@@ -504,6 +533,14 @@
   <div class="modal" style="max-width:640px;">
     <button class="close-x" id="closeRoundDetail">✕</button>
     <div id="roundDetailBody"></div>
+  </div>
+</div>
+
+<!-- Modal: detalle de qué resultados cuentan para un hándicap -->
+<div class="overlay" id="overlayHcpDetail">
+  <div class="modal" style="max-width:580px;">
+    <button class="close-x" id="closeHcpDetail">✕</button>
+    <div id="hcpDetailBody"></div>
   </div>
 </div>
 
@@ -1629,6 +1666,98 @@ document.getElementById('closeRoundDetail').addEventListener('click', ()=>{
 });
 document.getElementById('overlayRoundDetail').addEventListener('click', (e)=>{
   if(e.target.id === 'overlayRoundDetail') document.getElementById('overlayRoundDetail').classList.remove('open');
+});
+
+/* ================= Popup: qué resultados cuentan para cada hándicap ================= */
+const HCP_TRACK_INFO = {
+  oficial:  {label:'Oficial de torneo',    icon:'🏆'},
+  completo: {label:'Teórico completo',     icon:'⛳'},
+  solo18h:  {label:'Teórico solo 18h',     icon:'🏌️'}
+};
+
+function rowsForTrack(track){
+  if(!lastResult) return [];
+  if(track === 'oficial')  return lastResult.table.filter(r=>r.oficial);
+  if(track === 'solo18h')  return lastResult.table.filter(r=>r.tipo === '18 hoyos');
+  return lastResult.table; // completo: todas
+}
+
+function openHcpDetail(track){
+  const info = HCP_TRACK_INFO[track];
+  if(!info) return;
+  const body = document.getElementById('hcpDetailBody');
+
+  const rows = rowsForTrack(track); // ya viene en orden cronológico ascendente
+  if(!rows.length){
+    body.innerHTML = `<h3 class="hd-title">${info.icon} ${info.label}</h3><div class="empty-msg">Todavía no hay resultados para este hándicap.</div>`;
+    document.getElementById('overlayHcpDetail').classList.add('open');
+    return;
+  }
+
+  const last20 = rows.slice(-20).map((r,i)=>({...r, _i:i}));
+  const n = last20.length;
+  const [take, adj] = numToAverage(n);
+  const bestSorted = [...last20].sort((a,b)=>a.dif-b.dif).slice(0, take);
+  const bestIdxSet = new Set(bestSorted.map(r=>r._i));
+  const worstCounting = Math.max(...bestSorted.map(r=>r.dif));
+
+  const listRows = [...last20].reverse().map(r=>{
+    const counting = bestIdxSet.has(r._i);
+    const isWorst = counting && r.dif === worstCounting;
+    const tag = isWorst ? 'A superar' : (counting ? 'Cuenta' : 'No cuenta');
+    return `<div class="hd-row ${counting ? 'counting' : 'resting'} ${isWorst ? 'worst' : ''}">
+      <div class="hd-main">
+        <div class="hd-date">${fmtDate(r.fecha)}</div>
+        <div class="hd-campo">${r.campo}${r.oficial ? ' · oficial' : ''}</div>
+      </div>
+      <div class="hd-right">
+        <div class="hd-dif">${r.dif.toFixed(1)}</div>
+        <div class="hd-tag">${tag}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  let fwdHtml = '';
+  if(n < 20){
+    let prevTake = take;
+    for(let k=n+1; k<=20; k++){
+      const [t2] = numToAverage(k);
+      if(t2 !== prevTake){
+        fwdHtml += `<div class="hd-fwd-row"><span>Con ${k} resultado${k===1?'':'s'}</span><span>se promediarán los mejores <b>${t2}</b></span></div>`;
+        prevTake = t2;
+      }
+    }
+  }
+  fwdHtml += `<div class="hd-fwd-row muted"><span>${n>=20 ? 'Ahora mismo' : 'A partir de 20 resultados'}</span><span>ventana móvil: siempre los mejores <b>8</b> de los últimos <b>20</b></span></div>`;
+
+  const adjTxt = adj !== 0 ? ` (ajuste ${adj>0?'+':''}${adj.toFixed(1)})` : '';
+
+  body.innerHTML = `
+    <h3 class="hd-title">${info.icon} ${info.label}</h3>
+    <div class="hd-summary">Se están promediando los mejores <b>${take}</b> de tus últimos <b>${n}</b> resultado${n===1?'':'s'}${adjTxt}.</div>
+    <div class="hd-callout">
+      <div class="hd-callout-label">Peor resultado que cuenta ahora mismo</div>
+      <div class="hd-callout-val">${worstCounting.toFixed(1)}</div>
+      <div class="hd-callout-sub">Si tu próxima vuelta tiene un diferencial mejor que este, puede entrar a sustituirlo y bajar tu hándicap.</div>
+    </div>
+    <div class="hd-list-title">Resultados considerados (últimos ${n})</div>
+    <div class="hd-list">${listRows}</div>
+    <div class="hd-fwd">
+      <div class="hd-fwd-title">De cara a próximas rondas</div>
+      ${fwdHtml}
+    </div>
+  `;
+  document.getElementById('overlayHcpDetail').classList.add('open');
+}
+
+document.querySelectorAll('.stat-card[data-track]').forEach(card=>{
+  card.addEventListener('click', ()=> openHcpDetail(card.dataset.track));
+});
+document.getElementById('closeHcpDetail').addEventListener('click', ()=>{
+  document.getElementById('overlayHcpDetail').classList.remove('open');
+});
+document.getElementById('overlayHcpDetail').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlayHcpDetail') document.getElementById('overlayHcpDetail').classList.remove('open');
 });
 
 
