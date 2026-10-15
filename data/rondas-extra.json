@@ -1,0 +1,21 @@
+{
+  "oficiales": [
+    {
+      "fecha": "2026-10-09",
+      "campo": "FORESSOS",
+      "es18": true,
+      "diferencial": 28.6,
+      "notas": "Locos por el Golf",
+      "id": "r_mv15672t_p1hnn4"
+    },
+    {
+      "fecha": "2026-10-15",
+      "campo": "EL BOSQUE",
+      "es18": true,
+      "diferencial": 24.6,
+      "notas": "Locos por el Golf",
+      "id": "r_mv9nb8s4_iqnszc"
+    }
+  ],
+  "no_oficiales": []
+}
